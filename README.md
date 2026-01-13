@@ -13,7 +13,7 @@ The WHO 2021 classification criteria for adult-type diffuse glioma integrate his
 * Linux (Tested on Ubuntu 22.04)
 * NVIDIA GPU (Tested on Nvidia A6000/A100)
 
-Next, use the environment configuration file located in docs/clam.yaml to create a conda environment:
+Next, use the environment configuration file to create a conda environment:
 ```bash
 conda env create -n glioma_subtyping -f glioma_subtyping.yaml
 ```
