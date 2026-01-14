@@ -25,15 +25,31 @@ conda activate glioma_subtyping
 
 ## WSI Patching and Curation
 
+```bash
+data/slides_20x/
+	├── patient_1_slide_a.svs
+	├── patient_1_slide_b.svs
+	└── ...
+data/slides_40x/
+	├── patient_2_slide_a.svs
+	├── patient_2_slide_b.svs
+	└── ...
+```
+
+
 ### 🛠 Workflow Logic
 
 The pipeline automatically adjusts the extraction scale and file paths based on the input magnification. 
 This ensures that the physical area covered by a patch remains consistent or follows your specific protocol.
 
-| Input Argument | Target Data Directory | Output Directory | Patch Size |
-| :--- | :--- | :--- | :--- |
-| `20x` | `data/slides_20x/` | `data/slides_patches_20x/` | **256** |
-| `40x` | `data/slides_40x/` | `data/slides_patches_40x/` | **512** |
+| Input Argument | Target Data Directory | Output Directory | Patch Size | Down Sample Level |
+| :--- | :--- | :--- | :--- | :--- |
+| `40x` | `data/slides_40x/` | `data/slides_patches_40x/` | **512** | `2` |
+| `20x` | `data/slides_20x/` | `data/slides_patches_20x/` | **256** | `1` | 
+
+
+
+
 
 
 ### Execution Examples
