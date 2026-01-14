@@ -13,9 +13,9 @@ import torch.nn as nn
 import torchvision
 from huggingface_hub import login
 
+token = os.getenv('HF_TOKEN')
 # Login to Hugging Face Hub
-login("")  # replace with your actual token
-
+login(token)  # replace with your actual token
 def has_CONCH():
     HAS_CONCH = False
     CONCH_CKPT_PATH = ''
@@ -130,8 +130,6 @@ def get_encoder(model_name, target_img_size=224):
         model = timm.create_model("hf-hub:bioptimus/H-optimus-0", pretrained=True, init_values=1e-5, dynamic_img_size=False)
     elif model_name == 'optimus1':
         model = timm.create_model("hf-hub:bioptimus/H-optimus-1", pretrained=True, init_values=1e-5, dynamic_img_size=False)
-    elif model_name == 'kaiko':
-        model = torch.hub.load("kaiko-ai/towards_large_pathology_fms", "vitl14", trust_repo=True)
     elif model_name == 'uni2':
         timm_kwargs = {
             'img_size': 224, 
@@ -155,14 +153,6 @@ def get_encoder(model_name, target_img_size=224):
         from transformers import AutoModel 
         titan = AutoModel.from_pretrained('MahmoodLab/TITAN', trust_remote_code=True)
         model, img_transforms = titan.return_conch()
-    elif model_name == 'ssl_ours':
-        print("Entered SSL DINOv2 trained for REG")
-        model = timm.create_model("vit_large_patch14_224", img_size=224, patch_size=14, init_values=1e-5, num_classes=0, dynamic_img_size=True)
-        model.load_state_dict(torch.load('/N/project/histopath/REG/Wsi-Caption/dinov2_ckpt/dinov2_backbone.pth', map_location="cpu"), strict=True)
-    elif model_name == 'ssl_dinov3':
-        from dinov3.models import vision_transformer as vits
-        model = vits.vit_large(patch_size=16,img_size=224,init_values=1e-6,use_abs_pos_emb=False,rope=True,rope_base=100.0,rope_dtype="bf16",num_classes=0)
-        model.load_state_dict(torch.load('/N/slate/sinnani/clam/dinov3/ckpt/teacher_checkpoint_corrected.pth', map_location="cpu"), strict=True)
     else:
         raise NotImplementedError('model {} not implemented'.format(model_name))
     

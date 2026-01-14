@@ -44,23 +44,64 @@ This ensures that the physical area covered by a patch remains consistent or fol
 
 | Input Argument | Target Data Directory | Output Directory | Patch Size | Down Sample Level |
 | :--- | :--- | :--- | :--- | :--- |
-| `40x` | `data/slides_40x/` | `data/slides_patches_40x/` | **512** | `2` |
-| `20x` | `data/slides_20x/` | `data/slides_patches_20x/` | **256** | `1` | 
+| `40x` | `data/slides_40x/` | `data/slides_patches/` | **512** | `2` |
+| `20x` | `data/slides_20x/` | `data/slides_patches/` | **256** | `1` | 
 
 
-### Execution Examples
-```shell
-# Process 20x slides with 256px patches
-./create_patches.sh 20x
+### Patch Creation at Multiple Magnifications
 
-# Process 40x slides with 512px patches
-./create_patches.sh 40x
+Some datasets provide Whole Slide Images (WSIs) with pyramid downsample levels  
+`1, 2, 4, 8, 16`.  
+We map these levels to effective optical magnifications as follows:
+
+| Pyramid Level | Effective Magnification |
+|--------------:|-------------------------|
+| 1             | 40x (native resolution) |
+| 2             | 20x                     |
+| 4             | 10x                     |
+| 8             | 5x                      |
+| 16            | 2.5x                    |
+
+Based on this mapping, patches are extracted using the following conventions:
+
+- **20x / 10x / 5x / 2.5x**  
+  - `step_size = 256`  
+  - `patch_size = 256`  
+- **40x**  
+  - `step_size = 512`  
+  - `patch_size = 512`
+
+---
+
+#### Create Patches Script
+
+The `create_patches.sh` script takes the following arguments:
+
+```bash
+./create_patches.sh <DATASET> <MAG> <PATCH_SIZE> <PATCH_LEVEL>
 ```
-By setting `20x` to `256` and `40x` to `512`, you are effectively keeping the **field of view (FOV)** of each patch identical in terms of physical microns (assuming the 40x scan has twice the resolution of the 20x scan). This is a standard best practice in pathology machine learning to ensure the model sees the same amount of tissue per tile regardless of the scanner settings.
+#### Examples Commands
+20x (Pyramid Level = 2)
+```bash
+./create_patches.sh tcga 20x 256 2
+```
+10x (Pyramid Level = 4)
+```bash
+./create_patches.sh tcga 10x 256 4
+```
+5x (Pyramid Level = 8)
+```bash
+./create_patches.sh tcga 5x 256 8
+```
+2.5x (Pyramid Level = 16)
+```bash
+./create_patches.sh tcga 2.5x 256 16
+```
+
 
 #### Output Directory Structure
 ```bash
-data/slides_patches_20x/
+data/patches/<DATASET>/<MAG>/
 	├── masks
     		├── patient_1_slide_a.png
     		├── patient_1_slide_b.png
@@ -74,32 +115,48 @@ data/slides_patches_20x/
     		├── patient_1_slide_b.png
     		└── ...
 	└── slides_processed.csv
-
-data/slides_patches_40x/
-├── masks
-        ├── patient_1_slide_a.png
-        ├── patient_1_slide_b.png
-        └── ...
-├── patches
-        ├── patient_1_slide_a.h5
-        ├── patient_1_slide_b.h5
-        └── ...
-├── stitches
-        ├── patient_1_slide_a.png
-        ├── patient_1_slide_b.png
-        └── ...
-└── slides_processed.csv
 ```
 
 ### 🧹 Patch Cleanup (Step 2)
-After initial patching, the pipeline runs a **Cleanup Script** to filter out low-quality tiles.
+After initial patching, the pipeline runs a **Cleanup Script** to filter out low-quality tiles. (if needed)
 #### Filtering Criteria:
 1. **White Space**: Patches with >85% background are removed.
 2. **Stain Detection**: Uses HED (Hematoxylin-Eosin-DAB) color deconvolution to ensure tissue is actually present.
 3. **HSV Filtering**: Removes blurry or out-of-focus areas based on saturation and value thresholds.
 
-#### Why this is necessary:
-Whole Slide Images often contain artifacts, marker ink, or large empty regions. By cleaning the `.h5` files, you reduce the noise in your training set and significantly speed up the feature extraction (encoding) step.
+```bash
+data/patches/<DATASET>/<MAG>/
+	├── masks
+    		├── patient_1_slide_a.png
+    		├── patient_1_slide_b.png
+    		└── ...
+	├── patches
+    		├── patient_1_slide_a.h5
+    		├── patient_1_slide_b.h5
+    		└── ...
+	├── stitches
+    		├── patient_1_slide_a.png
+    		├── patient_1_slide_b.png
+    		└── ...
+	└── slides_processed.csv
+```
+
+After patch extraction, a cleanup step is performed to remove invalid or unused patches based on the patching magnification.
+Run the cleanup script as follows:
+
+```bash
+python step_2_cleanup.py \
+    --wsi_dir "$DATA_DIR" \
+    --h5_dir "$COORD_DIR/patches" \
+    --csv_path "$COORD_DIR/slides_processed.csv" \
+    --patching "$MAG"
+```
+Arguments:
+- `--wsi_dir` : directory containing the original WSI files
+- `--h5_dir` : directory containing extracted patch coordinate `.h5` files
+- `--csv_path` — CSV file generated during patch creation (`slides_processed.csv`)
+- `--patching` — magnification level used for patch extraction (e.g., `20x`, `10x`, `5x`, `2.5x`)
+
 
 ## Creating Features
 Run the extraction script by specifying magnification, batch size, and the desired model backbone. The script dynamically maps to the correct data and coordinate directories based on the magnification provided.
