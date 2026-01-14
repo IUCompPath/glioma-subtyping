@@ -79,23 +79,12 @@ The `create_patches.sh` script takes the following arguments:
 
 ```bash
 ./create_patches.sh <DATASET> <MAG> <PATCH_SIZE> <PATCH_LEVEL>
-```
-#### Examples Commands
-20x (Pyramid Level = 2)
-```bash
-./create_patches.sh tcga 20x 256 2
-```
-10x (Pyramid Level = 4)
-```bash
-./create_patches.sh tcga 10x 256 4
-```
-5x (Pyramid Level = 8)
-```bash
-./create_patches.sh tcga 5x 256 8
-```
-2.5x (Pyramid Level = 16)
-```bash
-./create_patches.sh tcga 2.5x 256 16
+
+Examples: 
+./create_patches.sh tcga 20x 256 2 #20x (Pyramid Level = 2)
+./create_patches.sh tcga 10x 256 4 #10x (Pyramid Level = 4)
+./create_patches.sh tcga 5x 256 8 #5x (Pyramid Level = 8)
+./create_patches.sh tcga 2.5x 256 16 #2.5x (Pyramid Level = 16)
 ```
 
 
