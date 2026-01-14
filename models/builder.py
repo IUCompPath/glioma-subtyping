@@ -1,0 +1,176 @@
+import os
+from functools import partial
+import timm
+from .timm_wrapper import TimmCNNEncoder
+import torch
+from utils.constants import MODEL2CONSTANTS
+from utils.transform_utils import get_eval_transforms
+from torchvision import transforms
+from timm.data import resolve_data_config
+from timm.data.transforms_factory import create_transform
+import pandas as pd
+import torch.nn as nn
+import torchvision
+from huggingface_hub import login
+
+# Login to Hugging Face Hub
+login("")  # replace with your actual token
+
+def has_CONCH():
+    HAS_CONCH = False
+    CONCH_CKPT_PATH = ''
+    # check if CONCH_CKPT_PATH is set and conch is installed, catch exception if not
+    try:
+        from conch.open_clip_custom import create_model_from_pretrained
+        # check if CONCH_CKPT_PATH is set
+        if 'CONCH_CKPT_PATH' not in os.environ:
+            raise ValueError('CONCH_CKPT_PATH not set')
+        HAS_CONCH = True
+        CONCH_CKPT_PATH = os.environ['CONCH_CKPT_PATH']
+    except Exception as e:
+        print(e)
+        print('CONCH not installed or CONCH_CKPT_PATH not set')
+    return HAS_CONCH, CONCH_CKPT_PATH
+
+def has_UNI():
+    HAS_UNI = False
+    UNI_CKPT_PATH = ''
+    # check if UNI_CKPT_PATH is set, catch exception if not
+    try:
+        # check if UNI_CKPT_PATH is set
+        if 'UNI_CKPT_PATH' not in os.environ:
+            raise ValueError('UNI_CKPT_PATH not set')
+        HAS_UNI = True
+        UNI_CKPT_PATH = os.environ['UNI_CKPT_PATH']
+    except Exception as e:
+        print(e)
+    return HAS_UNI, UNI_CKPT_PATH
+
+def get_pretrained_url(key):
+    URL_PREFIX = "https://github.com/lunit-io/benchmark-ssl-pathology/releases/download/pretrained-weights"
+    model_zoo_registry = {
+        "DINO_p16": "dino_vit_small_patch16_ep200.torch",
+        "DINO_p8": "dino_vit_small_patch8_ep200.torch",
+    }
+    pretrained_url = f"{URL_PREFIX}/{model_zoo_registry.get(key)}"
+    return pretrained_url
+
+def vit_small(pretrained, progress, key, **kwargs):
+    from timm.models.vision_transformer import VisionTransformer
+    patch_size = kwargs.get("patch_size", 16)
+    model = VisionTransformer(
+        img_size=224, patch_size=patch_size, embed_dim=384, num_heads=6, num_classes=0
+    )
+    if pretrained:
+        pretrained_url = get_pretrained_url(key)
+        verbose = model.load_state_dict(
+            torch.hub.load_state_dict_from_url(pretrained_url, progress=progress)
+        )
+        print(verbose)
+    return model
+
+def load_resnet18(device='cuda'):
+    # Load the ResNet-18 architecture without pretrained weights
+    model = torchvision.models.resnet18(pretrained=False)
+    state = torch.load('tenpercent_resnet18.ckpt', map_location=device)
+    state_dict = {k.replace('model.', '').replace('resnet.', ''): v for k, v in state['state_dict'].items()}
+    # Load weights into the model
+    model.load_state_dict({k: v for k, v in state_dict.items() if k in model.state_dict()}, strict=False)
+    # Modify the final layer based on the return_preactivation flag
+    model.fc = torch.nn.Identity()
+    # Move the model to the specified device
+    model = model.to(device)
+    return model
+
+    return model
+def get_encoder(model_name, target_img_size=224):
+    print('loading model checkpoint')
+    if model_name == 'resnet':
+        model = TimmCNNEncoder()
+    elif model_name == 'simclr':
+        model = load_resnet18()
+    elif model_name == 'retccl':
+        import ResNet as ResNet
+        model = ResNet.resnet50(num_classes=128,mlp=False, two_branch=False, normlinear=True)
+        pretext_model = torch.load('best_ckpt.pth')
+        model.fc = nn.Identity()
+        model.load_state_dict(pretext_model, strict=True)
+    elif model_name == 'uni':
+        HAS_UNI, UNI_CKPT_PATH = has_UNI()
+        assert HAS_UNI, 'UNI is not available'
+        model = timm.create_model("vit_large_patch16_224", init_values=1e-5, num_classes=0, dynamic_img_size=True)
+        model.load_state_dict(torch.load(UNI_CKPT_PATH, map_location="cpu"), strict=True)
+    elif model_name == 'conch_v1':
+        #HAS_CONCH, CONCH_CKPT_PATH = has_CONCH()
+        #assert HAS_CONCH, 'CONCH is not available'
+        from conch.open_clip_custom import create_model_from_pretrained
+        #model, _ = create_model_from_pretrained("conch_ViT-B-16", CONCH_CKPT_PATH)
+        model, preprocess = create_model_from_pretrained('conch_ViT-B-16', "hf_hub:MahmoodLab/conch", hf_auth_token="")
+        model.forward = partial(model.encode_image, proj_contrast=False, normalize=False)
+    elif model_name == 'ctranspath':
+        from TransPath.ctran import ctranspath
+        model = ctranspath()
+        model.head = nn.Identity()
+        td  = torch.load('/N/slate/sinnani/clam/ctranspath.pth')
+        model.load_state_dict(td['model'], strict=True)
+    elif model_name == 'lunit':
+        model = vit_small(pretrained=True, progress=False, key="DINO_p8", patch_size=8)
+    elif model_name == 'gigapath':
+        print("Model is Gigapath")
+        model = timm.create_model("hf_hub:prov-gigapath/prov-gigapath", pretrained=True)
+    elif model_name == 'virchow':
+        from timm.layers import SwiGLUPacked
+        model = timm.create_model("hf-hub:paige-ai/Virchow2", pretrained=True, mlp_layer=SwiGLUPacked, act_layer=torch.nn.SiLU)
+        img_transforms = create_transform(**resolve_data_config(model.pretrained_cfg, model=model))
+    elif model_name == 'hibou':
+        from transformers import AutoImageProcessor, AutoModel
+        processor = AutoImageProcessor.from_pretrained("histai/hibou-L", trust_remote_code=True)
+        model = AutoModel.from_pretrained("histai/hibou-L", trust_remote_code=True)
+    elif model_name == 'optimus':
+        model = timm.create_model("hf-hub:bioptimus/H-optimus-0", pretrained=True, init_values=1e-5, dynamic_img_size=False)
+    elif model_name == 'optimus1':
+        model = timm.create_model("hf-hub:bioptimus/H-optimus-1", pretrained=True, init_values=1e-5, dynamic_img_size=False)
+    elif model_name == 'kaiko':
+        model = torch.hub.load("kaiko-ai/towards_large_pathology_fms", "vitl14", trust_repo=True)
+    elif model_name == 'uni2':
+        timm_kwargs = {
+            'img_size': 224, 
+            'patch_size': 14, 
+            'depth': 24,
+            'num_heads': 24,
+            'init_values': 1e-5, 
+            'embed_dim': 1536,
+            'mlp_ratio': 2.66667*2,
+            'num_classes': 0, 
+            'no_embed_class': True,
+            'mlp_layer': timm.layers.SwiGLUPacked, 
+            'act_layer': torch.nn.SiLU, 
+            'reg_tokens': 8, 
+            'dynamic_img_size': True
+        }
+        model = timm.create_model("hf-hub:MahmoodLab/UNI2-h", pretrained=True, **timm_kwargs)
+        img_transforms = create_transform(**resolve_data_config(model.pretrained_cfg, model=model))
+
+    elif model_name == 'conchv1_5':
+        from transformers import AutoModel 
+        titan = AutoModel.from_pretrained('MahmoodLab/TITAN', trust_remote_code=True)
+        model, img_transforms = titan.return_conch()
+    elif model_name == 'ssl_ours':
+        print("Entered SSL DINOv2 trained for REG")
+        model = timm.create_model("vit_large_patch14_224", img_size=224, patch_size=14, init_values=1e-5, num_classes=0, dynamic_img_size=True)
+        model.load_state_dict(torch.load('/N/project/histopath/REG/Wsi-Caption/dinov2_ckpt/dinov2_backbone.pth', map_location="cpu"), strict=True)
+    elif model_name == 'ssl_dinov3':
+        from dinov3.models import vision_transformer as vits
+        model = vits.vit_large(patch_size=16,img_size=224,init_values=1e-6,use_abs_pos_emb=False,rope=True,rope_base=100.0,rope_dtype="bf16",num_classes=0)
+        model.load_state_dict(torch.load('/N/slate/sinnani/clam/dinov3/ckpt/teacher_checkpoint_corrected.pth', map_location="cpu"), strict=True)
+    else:
+        raise NotImplementedError('model {} not implemented'.format(model_name))
+    
+    # print(model)
+    if model_name not in ['virchow','uni2','conchv1_5']:
+        constants = MODEL2CONSTANTS[model_name]
+        img_transforms = get_eval_transforms(mean=constants['mean'],
+                                            std=constants['std'],
+                                            target_img_size = target_img_size)
+    return model, img_transforms
+

@@ -48,10 +48,6 @@ This ensures that the physical area covered by a patch remains consistent or fol
 | `20x` | `data/slides_20x/` | `data/slides_patches_20x/` | **256** | `1` | 
 
 
-
-
-
-
 ### Execution Examples
 ```shell
 # Process 20x slides with 256px patches
