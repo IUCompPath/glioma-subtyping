@@ -1,4 +1,4 @@
-name: who_classifier
+name: glioma_subtyping
 channels:
   - pytorch
   - nvidia
@@ -338,4 +338,4 @@ dependencies:
       - transformers==4.39.3
       - tzdata==2024.1
       - wrapt==1.16.0
-prefix: /home/sinnani/miniconda3/envs/clam_latest
+prefix: /home/sinnani/miniconda3/envs/glioma_subtyping
