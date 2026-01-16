@@ -79,10 +79,10 @@ The `create_patches.sh` script takes the following arguments:
 ./create_patches.sh <DATASET> <MAG> <PATCH_SIZE> <PATCH_LEVEL>
 
 Examples: 
-./create_patches.sh tcga 20x 256 0 #20x (Pyramid Level = 2)
-./create_patches.sh tcga 10x 256 1 #10x (Pyramid Level = 4)
-./create_patches.sh tcga 5x 256 2 #5x (Pyramid Level = 8)
-./create_patches.sh tcga 2.5x 256 3 #2.5x (Pyramid Level = 16)
+./script/create_patches.sh tcga 20x 256 0 #20x (Pyramid Level = 2)
+./script/create_patches.sh tcga 10x 256 1 #10x (Pyramid Level = 4)
+./script/create_patches.sh tcga 5x 256 2 #5x (Pyramid Level = 8)
+./script/create_patches.sh tcga 2.5x 256 3 #2.5x (Pyramid Level = 16)
 ```
 
 
@@ -135,13 +135,13 @@ It supports multiple **self-supervised and supervised histopathology encoders** 
 
 ### Usage
 ```bash
-./extract_features.sh <MAG> <BATCH_SIZE> <CSV_FILE> <BACKBONE> <DATASET>
+./script/extract_features.sh <MAG> <BATCH_SIZE> <CSV_FILE> <BACKBONE> <DATASET>
+``` 
 
 Example: 
 ```shell
 chmod +x extract_features.sh
-./extract_features.sh 20x 128 tcga_2021_who_labels.csv uni tcga
-
+./script/extract_features.sh 20x 128 tcga_2021_who_labels.csv uni tcga
 ```
 
 Arguments:
