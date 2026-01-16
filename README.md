@@ -136,17 +136,12 @@ It supports multiple **self-supervised and supervised histopathology encoders** 
 ### Usage
 ```bash
 ./extract_features.sh <MAG> <BATCH_SIZE> <CSV_FILE> <BACKBONE> <DATASET>
-```
+
 Example: 
 ```shell
 chmod +x extract_features.sh
+./extract_features.sh 20x 128 tcga_2021_who_labels.csv uni tcga
 
-./extract_features.sh \
-  20x \
-  128 \
-  tcga_gbm.csv \
-  uni \
-  tcga
 ```
 
 Arguments:
