@@ -24,11 +24,11 @@ conda activate glioma_subtyping
 ## WSI Patching and Curation
 
 ```bash
-data/slides_20x/
+data/wsi/<DATASET>
 	├── patient_1_slide_a.svs
 	├── patient_1_slide_b.svs
 	└── ...
-data/slides_40x/
+data/wsi/<DATASET>
 	├── patient_2_slide_a.svs
 	├── patient_2_slide_b.svs
 	└── ...
@@ -129,16 +129,33 @@ Arguments:
 
 
 ## Creating Features
-Run the extraction script by specifying magnification, batch size, and the desired model backbone. The script dynamically maps to the correct data and coordinate directories based on the magnification provided.
+This script performs **patch-level feature extraction** using a selected backbone model.  
+It supports multiple **self-supervised and supervised histopathology encoders** and automatically selects the appropriate feature-extraction wrapper.
+
 
 ### Usage
-```shell
-./extract_features.sh <MAG> <BATCH_SIZE> <BACKBONE>
+```bash
+./extract_features.sh <MAG> <BATCH_SIZE> <CSV_FILE> <BACKBONE> <DATASET>
 ```
 Example: 
 ```shell
-./extract_features.sh 20x 256 uni
+chmod +x extract_features.sh
+
+./extract_features.sh \
+  20x \
+  128 \
+  tcga_gbm.csv \
+  uni \
+  tcga
 ```
+
+Arguments:
+- `MAG` — magnification level (e.g., `20x`, `10x`, `5x`, `2.5x`)
+- `BATCH_SIZE` — batch size for feature extraction (e.g., `128`)
+- `CSV_FILE` — dataset CSV file (located in `dataset_csv/`)
+- `BACKBONE` — feature extractor backbone
+- `DATASET` — dataset name (e.g., `tcga`, `ebrains`, `ipd`)
+
 
 ### Supported Backbones
 
@@ -154,6 +171,26 @@ For more details about each model, please refer to the original repositories to 
 - **Hibou** : [https://github.com/HistAI/hibou](https://github.com/HistAI/hibou)
 - **Optimus** : [https://github.com/bioptimus/releases/tree/main/models/h-optimus/v0](https://github.com/bioptimus/releases/tree/main/models/h-optimus/v0)
 - **Virchow2** : [https://huggingface.co/paige-ai/Virchow2](https://huggingface.co/paige-ai/Virchow2)
+
+
+#### Output Directory Structure
+```bash
+data/features/<BACKBONE>/<DATASET>/<MAG>/
+    ├── h5_files/
+  │   ├── slide_1.h5
+  │   ├── slide_2.h5
+  │   └── ...
+  └── pt_files/
+      ├── slide_1.pt
+      ├── slide_2.pt
+      └── ...
+```
+`.h5` files contain patch features with coordinates while `.pt` files contain serialized tensors for faster downstream training. 
+
+## 🛠 Related Toolboxes
+While this repository focuses on specific glioma subtyping  [TRIDENT](https://github.com/mahmoodlab/TRIDENT) provides several large-scale toolkits designed for high-throughput Whole-Slide Image (WSI) processing and benchmarking. [TRIDENT](https://github.com/mahmoodlab/TRIDENT) is the next-generation successor to toolkits like [CLAM](https://github.com/mahmoodlab/CLAM/), offering a more robust and scalable pipeline for giga-pixel image analysis. 
+
+
 
 ## Training the models
 

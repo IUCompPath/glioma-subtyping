@@ -70,10 +70,10 @@ do
         --task $task \
         --model_type clam_sb \
         --log_data \
-        --data_root_dir /N/u/project/histopath/ \
+        --data_root_dir /N/u/project/ \
         --embed_dim "$in_dim" \
         --weighted_sample \
-        --features_dir /N/project/histopath/tcga_gbm_lgg_features/features_${backbone}/tcga_gbm_lgg_${mag}/ \
+        --features_dir data/features/${backbone}/${dataset}/${mag}/ \
         --subtyping \
         --no_inst_cluster \
         --csv_path dataset_csv/$csv_path \
