@@ -113,23 +113,6 @@ After initial patching, the pipeline runs a **Cleanup Script** to filter out low
 2. **Stain Detection**: Uses HED (Hematoxylin-Eosin-DAB) color deconvolution to ensure tissue is actually present.
 3. **HSV Filtering**: Removes blurry or out-of-focus areas based on saturation and value thresholds.
 
-```bash
-data/patches/<DATASET>/<MAG>/
-	├── masks
-    		├── patient_1_slide_a.png
-    		├── patient_1_slide_b.png
-    		└── ...
-	├── patches
-    		├── patient_1_slide_a.h5
-    		├── patient_1_slide_b.h5
-    		└── ...
-	├── stitches
-    		├── patient_1_slide_a.png
-    		├── patient_1_slide_b.png
-    		└── ...
-	└── slides_processed.csv
-```
-
 After patch extraction, a cleanup step is performed to remove invalid or unused patches based on the patching magnification.
 Run the cleanup script as follows:
 
@@ -164,10 +147,15 @@ Example:
 We support several **state-of-the-art self-supervised and supervised models** for histopathology.  
 For more details about each model, please refer to the original repositories to request access and follow their specific licensing terms.
 
-- **UNI2** : [https://github.com/mahmoodlab/UNI](https://github.com/mahmoodlab/UNI)
+- **ReNet-50** : ImageNet pretrained 
 - **CTransPath** : [https://github.com/Xiyue-Wang/TransPath](https://github.com/Xiyue-Wang/TransPath)
 - **Lunit ViT** : [https://github.com/lunit-io/benchmark-ssl-pathology](https://github.com/lunit-io/benchmark-ssl-pathology)
-- **ResNet-50** : ImageNet pretrained
+- **Lunit ViT** : [https://github.com/lunit-io/benchmark-ssl-pathology](https://github.com/lunit-io/benchmark-ssl-pathology)
+- **Lunit ViT** : [https://github.com/lunit-io/benchmark-ssl-pathology](https://github.com/lunit-io/benchmark-ssl-pathology)
+- **Lunit ViT** : [https://github.com/lunit-io/benchmark-ssl-pathology](https://github.com/lunit-io/benchmark-ssl-pathology)
+- **Lunit ViT** : [https://github.com/lunit-io/benchmark-ssl-pathology](https://github.com/lunit-io/benchmark-ssl-pathology)
+- **Lunit ViT** : [https://github.com/lunit-io/benchmark-ssl-pathology](https://github.com/lunit-io/benchmark-ssl-pathology)
+- **ResNet-50** : [https://github.com/mahmoodlab/UNI](https://github.com/mahmoodlab/UNI)
 
 ## Training the models
 
