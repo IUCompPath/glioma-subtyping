@@ -151,11 +151,11 @@ For more details about each model, please refer to the original repositories to 
 - **CTransPath** : [https://github.com/Xiyue-Wang/TransPath](https://github.com/Xiyue-Wang/TransPath)
 - **Lunit ViT** : [https://github.com/lunit-io/benchmark-ssl-pathology](https://github.com/lunit-io/benchmark-ssl-pathology)
 - **UNI** : [https://github.com/mahmoodlab/UNI](https://github.com/mahmoodlab/UNI)
-- **Conch** : [https://github.com/lunit-io/benchmark-ssl-pathology](https://github.com/lunit-io/benchmark-ssl-pathology)
-- **Gigapath** : [https://github.com/lunit-io/benchmark-ssl-pathology](https://github.com/lunit-io/benchmark-ssl-pathology)
-- **Hibou** : [https://github.com/lunit-io/benchmark-ssl-pathology](https://github.com/lunit-io/benchmark-ssl-pathology)
-- **Optimus** : [https://github.com/lunit-io/benchmark-ssl-pathology](https://github.com/lunit-io/benchmark-ssl-pathology)
-- **Virchow2** : 
+- **Conch** : [https://github.com/mahmoodlab/CONCH](https://github.com/mahmoodlab/CONCH)
+- **Gigapath** : [https://github.com/prov-gigapath/prov-gigapath](https://github.com/prov-gigapath/prov-gigapath)
+- **Hibou** : [https://github.com/HistAI/hibou](https://github.com/HistAI/hibou)
+- **Optimus** : [https://github.com/bioptimus/releases/tree/main/models/h-optimus/v0](https://github.com/bioptimus/releases/tree/main/models/h-optimus/v0)
+- **Virchow2** : [https://huggingface.co/paige-ai/Virchow2](https://huggingface.co/paige-ai/Virchow2)
 
 ## Training the models
 
