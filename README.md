@@ -144,7 +144,7 @@ Example:
 
 ### Supported Backbones
 
-We support several **state-of-the-art self-supervised and supervised models** for histopathology.  
+We support several **state-of-the-art self-supervised foundation models** for histopathology.  
 For more details about each model, please refer to the original repositories to request access and follow their specific licensing terms.
 
 - **ReNet-50** : ImageNet pretrained 
