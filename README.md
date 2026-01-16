@@ -1,5 +1,3 @@
-# Under Construction
-
 # AI-driven WHO 2021 classification of gliomas based only on H&E-stained slides
 
 <img src="fig1a.jpg" width="1000px" align="center" />
@@ -54,13 +52,13 @@ Some datasets provide Whole Slide Images (WSIs) with pyramid downsample levels
 `1, 2, 4, 8, 16`.  
 We map these levels to effective optical magnifications as follows:
 
-| Pyramid Level | Effective Magnification |
-|--------------:|-------------------------|
-| 1             | 40x (native resolution) |
-| 2             | 20x                     |
-| 4             | 10x                     |
-| 8             | 5x                      |
-| 16            | 2.5x                    |
+| Pyramid Level | Effective Magnification | Openslide Level |
+|--------------:|------------------------:| --------------: |
+| 1             | 40x (native resolution) | 0               |
+| 2             | 20x                     | 1               |
+| 4             | 10x                     | 2               |
+| 8             | 5x                      | 3               |
+| 16            | 2.5x                    | 4               |
 
 Based on this mapping, patches are extracted using the following conventions:
 
@@ -81,10 +79,10 @@ The `create_patches.sh` script takes the following arguments:
 ./create_patches.sh <DATASET> <MAG> <PATCH_SIZE> <PATCH_LEVEL>
 
 Examples: 
-./create_patches.sh tcga 20x 256 2 #20x (Pyramid Level = 2)
-./create_patches.sh tcga 10x 256 4 #10x (Pyramid Level = 4)
-./create_patches.sh tcga 5x 256 8 #5x (Pyramid Level = 8)
-./create_patches.sh tcga 2.5x 256 16 #2.5x (Pyramid Level = 16)
+./create_patches.sh tcga 20x 256 0 #20x (Pyramid Level = 2)
+./create_patches.sh tcga 10x 256 1 #10x (Pyramid Level = 4)
+./create_patches.sh tcga 5x 256 2 #5x (Pyramid Level = 8)
+./create_patches.sh tcga 2.5x 256 3 #2.5x (Pyramid Level = 16)
 ```
 
 
