@@ -171,11 +171,7 @@ Example:
 ```bash
 ./train.sh 20x uni
 ```
-### Methodology
-This codebase is heavily based on [CLAM](https://github.com/mahmoodlab/CLAM/). However, unlike CLAM, instance-level clustering is not used.
-The model is trained using a pure Attention-based Multiple Instance Learning (MIL) framework.
 
-As we discussed in our paper, we have trained our model on three different groups of patients. To train the train model replace the **splits_dir** argument in the `main.py` file. 
 
 ## Evaluation 
 To run the evaluation script, pass the **magnification level** and **backbone name** as arguments:
@@ -188,6 +184,11 @@ Example:
 ```bash
 ./eval.sh 20x uni
 ```
+
+### Acknowledgement
+This codebase is heavily based on [CLAM](https://github.com/mahmoodlab/CLAM/) and [MambaMIL](https://github.com/isyangshu/MambaMIL). We are grateful to the authors for their open-source work.
+
+This code is available for research and non-commercial academic purposes only. Please ensure you review the original repository licensing for any foundation models used, as well as the licensing terms for the two repositories mentioned above.
 
 ## References
 1. Lu, Ming Y., et al. "Data-efficient and weakly supervised computational pathology on whole-slide images." Nature biomedical engineering 5.6 (2021): 555-570.
