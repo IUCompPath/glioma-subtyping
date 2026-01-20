@@ -30,7 +30,8 @@ parser.add_argument('--splits_dir', type=str, default=None,
                     help='splits directory, if using custom splits other than what matches the task (default: None)')
 parser.add_argument('--model_size', type=str, choices=['small', 'big'], default='small', 
                     help='size of model (default: small)')
-parser.add_argument('--model_type', type=str,default='clam_sb')
+parser.add_argument('--model_type', type=str, choices=['clam_sb', 'clam_mb', 'mil'], default='clam_sb', 
+                    help='type of model (default: clam_sb)')
 parser.add_argument('--k', type=int, default=10, help='number of folds (default: 10)')
 parser.add_argument('--k_start', type=int, default=-1, help='start fold (default: -1, last fold)')
 parser.add_argument('--k_end', type=int, default=-1, help='end fold (default: -1, first fold)')
@@ -38,11 +39,9 @@ parser.add_argument('--fold', type=int, default=-1, help='single fold to evaluat
 parser.add_argument('--micro_average', action='store_true', default=False, 
                     help='use micro_average instead of macro_avearge for multiclass AUC')
 parser.add_argument('--split', type=str, choices=['train', 'val', 'test', 'all'], default='test')
-parser.add_argument('--task', type=str)
+parser.add_argument('--task', type=str, choices=['task_1_tumor_vs_normal',  'task_2_tumor_subtyping'])
 parser.add_argument('--drop_out', type=float, default=0.25, help='dropout')
-parser.add_argument('--embed_dim', type=int, default=512)
-parser.add_argument('--csv_path', type=str)
-parser.add_argument('--features_dir', type=str)
+parser.add_argument('--embed_dim', type=int, default=2560)
 args = parser.parse_args()
 
 device=torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -55,8 +54,6 @@ os.makedirs(args.save_dir, exist_ok=True)
 if args.splits_dir is None:
     args.splits_dir = args.models_dir
 
-print(args.models_dir)
-print(args.splits_dir)
 assert os.path.isdir(args.models_dir)
 assert os.path.isdir(args.splits_dir)
 
@@ -68,32 +65,21 @@ settings = {'task': args.task,
             'drop_out': args.drop_out,
             'model_size': args.model_size}
 
-with open(args.save_dir + '/eval_experiment.txt', 'w') as f:
+with open(args.save_dir + '/eval_experiment_{}.txt'.format(args.save_exp_code), 'w') as f:
     print(settings, file=f)
 f.close()
 
 print(settings)
-if args.task == 'upenn_idh':
+if args.task == 'task_1_tumor_vs_normal':
     args.n_classes=2
-    print("Entered the correct loop")
-    dataset = Generic_MIL_Dataset(csv_path = args.csv_path,
-                            data_dir= os.path.join(args.feature, 'upenn/features_20x_256_uni'),
+    dataset = Generic_MIL_Dataset(csv_path = 'dataset_csv/tumor_vs_normal_dummy_clean.csv',
+                            data_dir= os.path.join(args.data_root_dir, 'tumor_vs_normal_resnet_features'),
                             shuffle = False, 
                             print_info = True,
-                            label_dict = {0:0, 1:1},
+                            label_dict = {'normal_tissue':0, 'tumor_tissue':1},
                             patient_strat=False,
                             ignore=[])
 
-if args.task == 'tcga_idh':
-    args.n_classes=2
-    dataset = Generic_MIL_Dataset(csv_path = args.csv_path,
-                            data_dir= os.path.join(args.data_root_dir, 'features/features_20x'),
-                            shuffle = False, 
-                            print_info = True,
-                            label_dict = {0:0, 1:1},
-                            patient_strat=False,
-                            ignore=[])
-    
 elif args.task == 'task_2_tumor_subtyping':
     args.n_classes=3
     dataset = Generic_MIL_Dataset(csv_path = 'dataset_csv/tumor_subtyping_dummy_clean.csv',
@@ -103,40 +89,6 @@ elif args.task == 'task_2_tumor_subtyping':
                             label_dict = {'subtype_1':0, 'subtype_2':1, 'subtype_3':2},
                             patient_strat= False,
                             ignore=[])
-
-elif args.task == 'tcga_2_class':
-    args.n_classes=2
-    dataset = Generic_MIL_Dataset(csv_path = args.csv_path,
-                            data_dir= os.path.join(args.features_dir),
-                            shuffle = False, 
-                            print_info = True,
-                            label_dict = {0:0, 1:1},
-                            patient_strat=False,
-                            ignore=[])
-                            
-elif args.task == 'tcga_3_class':
-    args.n_classes=3
-    dataset = Generic_MIL_Dataset(csv_path = args.csv_path,
-                            data_dir= os.path.join(args.features_dir),
-                            shuffle = False, 
-                            print_info = True,
-                            label_dict = {0:0, 1:1,2:2},
-                            patient_strat=False,
-                            ignore=[])
-                            
-    
-                            
-elif args.task == 'tcga_6_class':
-    args.n_classes=6
-    dataset = Generic_MIL_Dataset(csv_path = args.csv_path,
-                            data_dir= os.path.join(args.features_dir),
-                            shuffle = False, 
-                            print_info = True,
-                            label_dict = {0:0, 1:1, 2:2, 3:3, 4:4, 5:5},
-                            patient_strat=False,
-                            ignore=[])
-    if args.model_type in ['clam_sb', 'clam_mb']:
-        assert args.subtyping 
 
 # elif args.task == 'tcga_kidney_cv':
 #     args.n_classes=3
@@ -148,8 +100,8 @@ elif args.task == 'tcga_6_class':
 #                             patient_strat= False,
 #                             ignore=['TCGA-SARC'])
 
-# else:
-#     raise NotImplementedError
+else:
+    raise NotImplementedError
 
 if args.k_start == -1:
     start = 0

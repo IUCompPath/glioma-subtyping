@@ -240,13 +240,31 @@ done
 ## Evaluation 
 To run the evaluation script, pass the **magnification level** and **backbone name** as arguments:
 ```bash
+BACKBONES=("uni" "imagenet" "hibou" "ctranspath" "lunit" "conch_v1" "gigapath" "optimus" "virchow")
+MODELS=("mean_mil" "max_mil" "att_mil" "trans_mil" "clam_sb" "mamba_mil" "dsmil" "wikgmil" "rrtmil")
+MAGS=("20x" "10x" "5x" "2.5x")
+
 chmod +x eval.sh
-./eval.sh <MAG> <BACKBONE>
+
+# The Master Loop
+for bb in "${BACKBONES[@]}"; do
+    for model in "${MODELS[@]}"; do
+        for mag in "${MAGS[@]}"; do
+            echo "------------------------------------------------"
+            echo "EVALUATING: Backbone: $bb | Model: $model | Mag: $mag"
+            ./eval.sh "$model" "$bb" "$mag"
+        done
+    done
+done
+
 ```
 
 Example: 
 ```bash
-./eval.sh 20x uni
+./eval.sh mamba_mil uni 20x
+./eval.sh rrt_mil gigapath 10x
+./eval.sh att_mil virchow 5x
+./eval.sh wikgmil optimus 2.5x
 ```
 
 ### Acknowledgement
