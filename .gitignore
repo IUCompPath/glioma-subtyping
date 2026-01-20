@@ -2,3 +2,4 @@ README_idh.md
 **/.DS_Store
 __pycache__/
 commands.sh
+scripts/train_job_mag.sh
