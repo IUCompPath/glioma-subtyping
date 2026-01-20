@@ -221,6 +221,21 @@ Example:
 ./train.sh gigapath wikgmil 5x
 ```
 
+To iterate over all the models, as well as backbone along with the magnification:
+```bash
+chmod +x train.sh
+
+# The Triple Loop
+for bb in uni imagenet hibou ctranspath lunit conch_v1 gigapath optimus virchow; do
+    for model in mean_mil max_mil att_mil trans_mil clam_sb mamba_mil dsmil wikgmil rrtmil; do
+        for mag in 20x 10x 5x 2.5x; do
+            echo "------------------------------------------------"
+            echo "RUNNING: Backbone: $bb | Model: $model | Mag: $mag"
+            ./train.sh "$bb" "$model" "$mag"
+        done
+    done
+done
+```
 
 ## Evaluation 
 To run the evaluation script, pass the **magnification level** and **backbone name** as arguments:
