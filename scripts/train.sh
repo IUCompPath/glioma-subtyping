@@ -1,78 +1,74 @@
 #!/bin/bash
 
-#SBATCH -p gpu
-#SBATCH -A r00917
-#SBATCH -o %x_%j.txt
-#SBATCH -e %x_%j.err
-#SBATCH --mail-type=fail
-#SBATCH --mail-user=sinnani@iu.edu
-#SBATCH --nodes=1
-#SBATCH --ntasks-per-node=1
-#SBATCH --cpus-per-task=8
-#SBATCH --gpus-per-node=1
-#SBATCH --time=48:00:00
+# --- 1. Fixed Variable Assignments (No spaces around '=') ---
+TASK='tcga_3_class'
+CSV_PATH='tcga_2021_who_labels.csv'
+LABEL='who2021'
 
-# Load any modules that your program needs
-module load anaconda
+# Positional Arguments
+BACKBONE=$1    # e.g., uni, virchow, gigapath
+MODEL_TYPE=$2  # e.g., clam_sb, trans_mil, mamba_mil
+MAG=$3         # e.g., 20x, 10x, 5x, 2.5x
 
-# Display GPU information
-nvidia-smi
+# --- 2. Corrected Case Statement ---
+# The 'in' acts as the opening and 'esac' as the closing.
+case "$BACKBONE" in 
+    "uni"|"imagenet"|"hibou")
+        in_dim=1024
+        ;;
+    "ctranspath")
+        in_dim=768
+        ;;
+    "lunit")
+        in_dim=384
+        ;;
+    "conch_v1")
+        in_dim=512
+        ;;
+    "gigapath"|"optimus")
+        in_dim=1536
+        ;;
+    "virchow")
+        in_dim=2560
+        ;;
+    *)
+        echo "Error: Unsupported backbone '$BACKBONE'"
+        echo "Usage: ./train.sh <backbone> <model_type> <mag>"
+        exit 1
+        ;;
+esac
 
-# Activate the conda environment
-source activate /N/u/sinnani/BigRed200/clam/clam_latest
+# --- 3. Define Paths ---
+SAVE_EXP="tcga_${LABEL}/${BACKBONE}/${MODEL_TYPE}/${MAG}"
+FEAT_DIR="data/features/${BACKBONE}/${TASK}/${MAG}/pt_files/"
 
-# Get command-line arguments
-task=$1
-csv_path=$2
-label=$3
+# --- 4. Print Status for Debugging ---
+echo "-------------------------------------------------------"
+echo "Training Workflow Initialized"
+echo "Task:       $TASK"
+echo "Backbone:   $BACKBONE (Resolved Dim: $in_dim)"
+echo "Model:      $MODEL_TYPE"
+echo "Mag:        $MAG"
+echo "Exp Code:   $SAVE_EXP"
+echo "Feature Dir: $FEAT_DIR"
+echo "-------------------------------------------------------"
 
-mag=("20x")
-backbone=$4
-# Navigate to the project directory
-cd /N/slate/sinnani/clam
-
-if [ "$backbone" = "uni" ]; then
-    in_dim=1024
-elif [ "$backbone" = "imagenet" ]; then
-    in_dim=1024
-elif [ "$backbone" = "ctranspath" ]; then
-    in_dim=768
-elif [ "$backbone" = "lunit" ]; then
-    in_dim=384 
-elif [ "$backbone" = "gigapath" ]; then
-    in_dim=1536
-elif [ "$backbone" = "virchow" ]; then
-    in_dim=2560
-elif [ "$backbone" = "conch_v1" ]; then
-    in_dim=512
-elif [ "$backbone" = "hibou" ]; then
-    in_dim=1024
-elif [ "$backbone" = "optimus" ]; then
-    in_dim=1536
-else
-    echo "Error: Unsupported backbone '$backbone'"
-    exit 1
-fi
-
-save_exp="tcga_${label}/${mag}/${backbone}/clam_sb"
-echo $save_exp
-# Run your program with command-line arguments
+# --- 5. Execution ---
 python main.py \
     --early_stopping \
     --lr 1e-4 \
     --k 10 \
     --label_frac 1.0 \
-    --exp_code "$save_exp" \
+    --exp_code "$SAVE_EXP" \
     --bag_loss ce \
     --inst_loss svm \
-    --task $task \
-    --model_type clam_sb \
-    --log_data \
-    --data_root_dir /N/u/project/histopath/ \
-    --weighted_sample \
+    --task "$TASK" \
+    --model_type "$MODEL_TYPE" \
+    --log_data  \
     --embed_dim "$in_dim" \
-    --features_dir /N/project/histopath/tcga_gbm_lgg_features/features_${backbone}/tcga_gbm_lgg_${mag}/ \
+    --weighted_sample \
+    --features_dir "$FEAT_DIR" \
     --subtyping \
     --no_inst_cluster \
-    --csv_path dataset_csv/$csv_path \
-    --split_dir task_who_2021_100
+    --csv_path "dataset_csv/$CSV_PATH" \
+    --split_dir task_who_2021_100 

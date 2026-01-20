@@ -189,17 +189,36 @@ While this repository focuses on specific glioma subtyping  [TRIDENT](https://gi
 
 ## Training the models
 
+### 🧠 Supported MIL Models
+
+The training script supports the following Multiple Instance Learning (MIL) model architectures.
+Use any of these as the `<MODEL>` argument when running `train.sh`.
+
+| Model Name | Description | Original Repository |
+|-----------|-------------| ----------------------|
+| `mean_mil` | Mean pooling MIL baseline | [https://github.com/jakubmonhart/mil_pytorch](https://github.com/jakubmonhart/mil_pytorch) |
+| `max_mil` | Max pooling MIL baseline | [https://github.com/jakubmonhart/mil_pytorch](https://github.com/jakubmonhart/mil_pytorch) |
+| `att_mil` | Attention-based MIL | [https://github.com/AMLab-Amsterdam/AttentionDeepMIL](https://github.com/AMLab-Amsterdam/AttentionDeepMIL) |
+| `trans_mil` | Transformer-based MIL |  [https://github.com/szc19990412/TransMIL](https://github.com/szc19990412/TransMIL) |
+| `clam_sb` | Attention-based MIL with instance clustering | [https://github.com/mahmoodlab/CLAM/](https://github.com/mahmoodlab/CLAM/) |
+| `mamba_mil` | Mamba-based state space MIL |  [https://github.com/isyangshu/MambaMIL](https://github.com/isyangshu/MambaMIL) |
+| `dsmil` | Dual-Stream MIL | [https://github.com/binli123/dsmil-wsi](https://github.com/binli123/dsmil-wsi) |
+| `wikgmil` | WIKG-MIL graph-based model | [https://github.com/WonderLandxD/WiKG/](https://github.com/WonderLandxD/WiKG/) |
+| `rrtmil` | RRT-based MIL architecture | [https://github.com/DearCaat/RRT-MIL](https://github.com/DearCaat/RRT-MIL) |
+
 
 ### Usage Instructions
 To run the training script, pass the **magnification level** and **backbone name** as arguments:
 ```bash
 chmod +x train.sh
-./train.sh <MAG> <BACKBONE>
+./train.sh <BACKBONE> <MODEL> <MAG>
 ```
 
 Example: 
 ```bash
-./train.sh 20x uni
+./train.sh virchow trans_mil 20x
+./train.sh uni mamba_mil 10x
+./train.sh gigapath wikgmil 5x
 ```
 
 
