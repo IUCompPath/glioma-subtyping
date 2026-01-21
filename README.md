@@ -261,10 +261,43 @@ done
 
 Example: 
 ```bash
-./eval.sh mamba_mil uni 20x
-./eval.sh rrt_mil gigapath 10x
-./eval.sh att_mil virchow 5x
-./eval.sh wikgmil optimus 2.5x
+./script/eval.sh mamba_mil uni 20x
+./script/eval.sh rrt_mil gigapath 10x
+./script/eval.sh att_mil virchow 5x
+./script/eval.sh wikgmil optimus 2.5x
+```
+
+#### Output Directory Structure
+```bash
+eval_results/
+└── tcga/              # <--- dataset_LABEL
+    └── uni/                      # <--- BACKBONE (Foundation Model)
+        └── mamba_mil/            # <--- MODEL (Architecture)
+            ├── 20x/              # <--- mag (Magnification)
+            │   ├── fold_0.csv    # <--- Slide-level results for Fold 0
+            │   ├── fold_1.csv
+            │   └── ...
+            ├── 10x/
+            └── ...
+```
+## Late Fusion (Multi-Magnification Ensembles)
+Late fusion aggregates predictions from multiple magnifications (e.g. 2.5x, 5x, 10x, 20x) by averaging class probabilities at the slide level, followed by argmax to obtain final predictions.
+This is performed after model inference, using precomputed evaluation CSVs.
+
+To run late fusion across all backbones, models, and datasets, use:
+```bash
+chmod +x script/eval_ensemble.sh
+./script/eval_ensemnles.sh who2021
+```
+
+#### Output Directory Structure 
+```bash
+<dataset>_who2021/<BACKBONE>/<MODEL>/
+└── 5x_10x_20x/
+    ├── EVAL_tcga_2021_tcga_3_class_5x_10x_20x_test/
+    │   ├── fold_0.csv
+    │   └── ...
+    └── EVAL_tcga_idh_5x_10x_20x_eval_results_detailed.csv
 ```
 
 ### Acknowledgement
