@@ -13,11 +13,7 @@
 #SBATCH --time=48:00:00
 
 module load anaconda
-source activate /N/u/sinnani/BigRed200/clam/clam_latest
-
-# Navigate to the project directory
-cd /N/slate/sinnani/clam
-
+source activate env
 
 WANDB_MODE=dryrun
 # Get command-line arguments

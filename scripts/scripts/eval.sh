@@ -13,8 +13,8 @@
 #SBATCH --time=2:00:00
 
 module load conda
-source activate /N/u/sinnani/BigRed200/MambaMIL/mambamil
-cd /N/slate/sinnani/MambaMIL
+source activate environment
+cd MambaMIL
 
 # WANDB_MODE=dryrun
 # #Define your variables
@@ -59,7 +59,7 @@ fi
 #     save_exp="tcga_${label}/${backbone}/${model}/${mag}"
 #     echo "$save_exp"
 #     python eval_miccai.py --k 10 --models_exp_code tcga_histology/${backbone}/${model}/${mag}_s1 --save_exp_code tcga_histology/${backbone}/${model}/${mag} --task tcga_3_class --model_type ${model}\
-#      --results_dir results --data_root_dir /N/slate/sinnani/MambaMIL/ --split test --features_dir /N/project/histopath/tcga_gbm_lgg_features/features_${backbone}/tcga_gbm_lgg_${mag}/\
+#      --results_dir results --data_root_dir MambaMIL/ --split test --features_dir /N/project/histopath/tcga_gbm_lgg_features/features_${backbone}/tcga_gbm_lgg_${mag}/\
 #       --csv_path dataset_csv/df_2021_histology_labels.csv --splits_dir splits/task_who_2021_100/ --in_dim ${in_dim} --embed_dim ${in_dim}
 # done
 
@@ -69,7 +69,7 @@ fi
 #     save_exp="ebrain_${label}/${backbone}/${model}/${mag}"
 #     echo "$save_exp"
 #     python eval_miccai.py --k 10 --models_exp_code tcga_histology/${backbone}/${model}/${mag}_s1 --save_exp_code ebrains_histology/${backbone}/${model}/${mag} --task tcga_3_class --model_type ${model}\
-#      --results_dir results --data_root_dir /N/slate/sinnani/MambaMIL/ --split test --features_dir /N/project/histopath/tcga_gbm_lgg_features/features_${backbone}/ebrains_${mag}/\
+#      --results_dir results --data_root_dir MambaMIL/ --split test --features_dir /N/project/histopath/tcga_gbm_lgg_features/features_${backbone}/ebrains_${mag}/\
 #       --csv_path dataset_csv/ebrain_df_label_histology.csv --splits_dir splits/ipd_who_2021_100/ --in_dim ${in_dim} --embed_dim ${in_dim}
 # done
 
@@ -82,11 +82,7 @@ do
     model_mag=${mag//_1/}
     echo "tcga_histology/${backbone}/${model}/${model_mag}_s1"
     python eval_miccai.py --k 10 --models_exp_code tcga_histology/${backbone}/${model}/${model_mag}_s1 --save_exp_code ipd_histology/${backbone}/${model}/${mag} --task tcga_3_class --model_type ${model}\
-     --results_dir results --data_root_dir /N/slate/sinnani/MambaMIL/ --split test --features_dir /N/project/histopath/ipd_dataset/features/${backbone}/${mag}/\
+     --results_dir results --data_root_dir MambaMIL/ --split test --features_dir /N/project/histopath/ipd_dataset/features/${backbone}/${mag}/\
       --csv_path dataset_csv/ipd_labels_refined.csv --splits_dir splits/ipd_who_2021_100/ --in_dim ${in_dim} --embed_dim ${in_dim}
 done
 
-
-# python eval_miccai.py --k 10 --models_exp_code tcga_${label}/${backbone}/${model}/${mag}_s1 --save_exp_code ${save_exp} --task tcga_3_class --model_type clam_sb \
-#     --results_dir results --data_root_dir /N/slate/sinnani/clam --split test --features_dir /N/project/histopath//ipd_dataset/features/${backbone}/${mag}/ \
-#     --csv_path dataset_csv/ipd_labels_refined.csv --splits_dir splits/ipd_who_2021_100/ --embed_dim ${in_dim}
