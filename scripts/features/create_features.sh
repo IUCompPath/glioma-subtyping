@@ -30,9 +30,9 @@ SLIDE_DIR="${WSI_ROOT:-data/wsi}/${DATASET}"
 FEAT_DIR="${FEAT_ROOT:-data/features}/${BACKBONE}/${DATASET}/${MAG}"
 
 case "$BACKBONE" in
-    virchow) SCRIPT=extract_features_fp_virchow.py ;;
-    hibou)   SCRIPT=extract_features_fp_hibou.py ;;
-    *)       SCRIPT=extract_features_fp.py ;;
+    virchow) SCRIPT=pipeline/extract_features_fp_virchow.py ;;
+    hibou)   SCRIPT=pipeline/extract_features_fp_hibou.py ;;
+    *)       SCRIPT=pipeline/extract_features_fp.py ;;
 esac
 
 echo "Dataset: $DATASET @ $MAG | backbone: $BACKBONE | output: $FEAT_DIR"

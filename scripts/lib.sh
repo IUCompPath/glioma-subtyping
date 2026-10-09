@@ -24,3 +24,7 @@ backbone_model_name() {
 
 # Python entry point: respects $PYTHON, defaults to the active interpreter.
 PY="${PYTHON:-python}"
+
+# Repo root on PYTHONPATH so entry points in pipeline/ and tools/ can import utils, models, ...
+# Run all scripts from the repository root.
+export PYTHONPATH="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)${PYTHONPATH:+:$PYTHONPATH}"

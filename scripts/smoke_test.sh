@@ -11,10 +11,10 @@
 #   MAGS ("20x 10x"), PRESET (bwh_biopsy.csv: permissive tissue filter), PYTHON.
 # Labels/splits are dummies (see tools/prepare_smoke_data.py): only plumbing is checked.
 set -euo pipefail
+[ "$#" -ge 1 ] || { sed -n '2,13p' "$0"; exit 1; }
+SLIDES=(); for p in "$@"; do SLIDES+=("$(realpath "$p")"); done   # absolute, since we cd below
 cd "$(dirname "$0")/.."
 source scripts/lib.sh
-
-[ "$#" -ge 1 ] || { sed -n '2,13p' "$0"; exit 1; }
 OUT=${OUT:-smoke_out}
 MODELS=${MODELS:-"att_mil mamba_mil clam_sb"}
 MAGS=${MAGS:-"20x 10x"}
@@ -22,7 +22,7 @@ PRESET=${PRESET:-bwh_biopsy.csv}
 BACKBONE=imagenet
 rm -rf "$OUT"
 
-"$PY" tools/prepare_smoke_data.py --slides "$@" --out "$OUT"
+"$PY" tools/prepare_smoke_data.py --slides "${SLIDES[@]}" --out "$OUT"
 SLIDE_EXT=$(ls "$OUT/wsi/smoke" | head -1 | sed 's/.*\(\.[^.]*\)$/\1/')
 export WSI_ROOT="$OUT/wsi" PATCH_ROOT="$OUT/patches" FEAT_ROOT="$OUT/features" RESULTS_DIR="$OUT/results" \
        EVAL_DIR="$OUT/eval_results" SLIDE_EXT CSV_PATH="$OUT/labels.csv" SPLIT_DIR="$OUT/splits" K=1 MAX_EPOCHS=3
@@ -46,7 +46,7 @@ for MODEL in $MODELS; do
 done
 
 for MODEL in $MODELS; do
-    "$PY" ensemble_script.py who2021 "$BACKBONE" "$MODEL" --eval_dir "$OUT/eval_results" --sources tcga
+    "$PY" pipeline/ensemble_script.py who2021 "$BACKBONE" "$MODEL" --eval_dir "$OUT/eval_results" --sources tcga
 done
 
 # Verify every stage produced its artifacts.

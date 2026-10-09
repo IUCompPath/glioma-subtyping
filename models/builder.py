@@ -101,7 +101,7 @@ def get_encoder(model_name, target_img_size=224):
     elif model_name == 'simclr':
         model = load_resnet18()
     elif model_name == 'retccl':
-        import ResNet as ResNet
+        import models.ResNet as ResNet
         model = ResNet.resnet50(num_classes=128,mlp=False, two_branch=False, normlinear=True)
         pretext_model = torch.load('best_ckpt.pth')
         model.fc = nn.Identity()

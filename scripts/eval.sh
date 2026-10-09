@@ -28,7 +28,7 @@ for COHORT in $COHORTS; do
         *) echo "Error: unknown cohort '$COHORT'" >&2; exit 1 ;;
     esac
     echo "Evaluating ${COHORT}: ${BACKBONE} | ${MODEL} | ${MAG}"
-    "$PY" eval.py \
+    "$PY" pipeline/eval.py \
         --k "${K:-10}" \
         --models_exp_code "$MODELS_EXP" \
         --save_exp_code "${COHORT}_${LABEL}/${BACKBONE}/${MODEL}/${MAG}" \

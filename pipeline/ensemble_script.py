@@ -15,8 +15,8 @@ averages the class probabilities per slide, takes the argmax, and writes::
 results can be compared directly.
 
 Usage:
-    python ensemble_script.py <label> <backbone> <model> [--eval_dir DIR] [--sources tcga,ebrains,ipd]
-    python ensemble_script.py who2021 uni mamba_mil --sources tcga
+    python pipeline/ensemble_script.py <label> <backbone> <model> [--eval_dir DIR] [--sources tcga,ebrains,ipd]
+    python pipeline/ensemble_script.py who2021 uni mamba_mil --sources tcga
 """
 import argparse
 import glob

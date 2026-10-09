@@ -16,7 +16,7 @@ MODELS=(mean_mil max_mil att_mil trans_mil clam_sb mamba_mil dsmil wikgmil rrtmi
 for bb in "${BACKBONES[@]}"; do
     for model in "${MODELS[@]}"; do
         echo "--- $bb | $model | $LABEL"
-        "$PY" ensemble_script.py "$LABEL" "$bb" "$model" --eval_dir "$EVAL_DIR" \
+        "$PY" pipeline/ensemble_script.py "$LABEL" "$bb" "$model" --eval_dir "$EVAL_DIR" \
             || echo "(skipped: no results for $bb / $model)"
     done
 done

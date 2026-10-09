@@ -33,8 +33,8 @@ COMMON=(--early_stopping --lr 1e-4 --k "${K:-10}" --max_epochs "${MAX_EPOCHS:-20
 
 if [ "$MODEL_TYPE" = "clam_sb" ]; then
     # CLAM has its own trainer with instance-level clustering options.
-    "$PY" main_clam.py "${COMMON[@]}" --model_type clam_sb --bag_loss ce --inst_loss svm \
+    "$PY" pipeline/main_clam.py "${COMMON[@]}" --model_type clam_sb --bag_loss ce --inst_loss svm \
         --subtyping --no_inst_cluster ${EXTRA_ARGS:-}
 else
-    "$PY" main.py "${COMMON[@]}" --model_type "$MODEL_TYPE" ${EXTRA_ARGS:-}
+    "$PY" pipeline/main.py "${COMMON[@]}" --model_type "$MODEL_TYPE" ${EXTRA_ARGS:-}
 fi

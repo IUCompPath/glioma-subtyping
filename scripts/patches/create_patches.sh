@@ -19,7 +19,7 @@ PRESET=${3:-${DATASET}.csv}
 WSI_ROOT=${WSI_ROOT:-data/wsi}
 PATCH_ROOT=${PATCH_ROOT:-data/patches}
 
-"$PY" create_patches_fp.py \
+"$PY" pipeline/create_patches_fp.py \
     --source "${WSI_ROOT}/${DATASET}" \
     --save_dir "${PATCH_ROOT}/${DATASET}/${MAG}" \
     --preset "$PRESET" \

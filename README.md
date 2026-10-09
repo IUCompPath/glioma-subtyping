@@ -1,7 +1,7 @@
 # AI-driven WHO 2021 classification of gliomas based only on H&E-stained slides
 
-<img src="fig1a.jpg" width="1000px" align="center" />
-<img src="fig1b.jpg" width="1000px" align="center" />
+<img src="docs/fig1a.jpg" width="1000px" align="center" />
+<img src="docs/fig1b.jpg" width="1000px" align="center" />
 
 The WHO 2021 classification criteria for adult-type diffuse glioma integrate histology with molecular profiling for conclusive diagnosis. Since molecular profiling can be expensive and time-consuming, often necessitating outsourcing or leading to the "not otherwise specified (NOS) label," this study develops an AI-driven WHO 2021 classification of gliomas solely from H&E whole-slide images (WSIs).
 
@@ -37,13 +37,14 @@ export HF_TOKEN=<your_hugging_face_token>
 
 | Path | Purpose |
 |------|---------|
-| `create_patches_fp.py`, `step_1a_patch_cleaning.py`, `wsi_core/` | Tissue segmentation, patch coordinates, patch cleanup (from CLAM) |
-| `extract_features_fp*.py`, `models/builder.py` | Patch-level feature extraction with each foundation model |
+| `pipeline/create_patches_fp.py`, `pipeline/step_1a_patch_cleaning.py`, `wsi_core/` | Tissue segmentation, patch coordinates, patch cleanup (from CLAM) |
+| `pipeline/extract_features_fp*.py`, `models/builder.py` | Patch-level feature extraction with each foundation model |
 | `models/`, `modules/` | MIL aggregators (CLAM, MambaMIL, TransMIL, DSMIL, WiKG, RRT, ...) |
-| `main.py`, `eval.py`, `ensemble_script.py` | Cross-validated training, evaluation, multi-magnification late fusion |
-| `create_heatmaps.py`, `vis_utils/` | Attention heatmaps for interpretability |
+| `pipeline/main.py`, `pipeline/main_clam.py`, `pipeline/eval.py`, `pipeline/ensemble_script.py` | Cross-validated training, evaluation, multi-magnification late fusion |
+| `pipeline/create_heatmaps.py`, `vis_utils/` | Attention heatmaps for interpretability |
+| `tools/`, `docs/` | Splitting, preset and plotting helpers; paper figures |
 | `dataset_csv/`, `splits/`, `presets/` | Labels, train/val/test folds, segmentation presets |
-| `scripts/` | Shell drivers for each pipeline stage (`scripts/slurm/` has a cluster template) |
+| `scripts/` | Shell drivers for each pipeline stage (`scripts/slurm/` has a cluster template). **Run them from the repository root.** |
 
 ## WSI Patching and Curation
 
@@ -98,7 +99,7 @@ After patch extraction, a cleanup step is performed to remove invalid or unused 
 Run the cleanup script as follows:
 
 ```bash
-python step_1a_patch_cleaning.py \
+python pipeline/step_1a_patch_cleaning.py \
     --wsi_dir "$DATA_DIR" \
     --h5_dir "$COORD_DIR/patches" \
     --csv_path "$COORD_DIR/slides_processed.csv" \
