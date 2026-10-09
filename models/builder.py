@@ -11,11 +11,21 @@ from timm.data.transforms_factory import create_transform
 import pandas as pd
 import torch.nn as nn
 import torchvision
-from huggingface_hub import login
 
-token = os.getenv('HF_TOKEN')
-# Login to Hugging Face Hub
-login(token)  # replace with your actual token
+
+def hf_login():
+    """Authenticate with the Hugging Face Hub for gated models (UNI, CONCH, Virchow2, ...).
+
+    The token is read from the ``HF_TOKEN`` environment variable (or a prior
+    ``huggingface-cli login``); it is never stored in the repository. Does
+    nothing when no token is available so that ungated models still work.
+    """
+    token = os.getenv('HF_TOKEN')
+    if token:
+        from huggingface_hub import login
+        login(token=token)
+
+
 def has_CONCH():
     HAS_CONCH = False
     CONCH_CKPT_PATH = ''
@@ -85,6 +95,7 @@ def load_resnet18(device='cuda'):
     return model
 def get_encoder(model_name, target_img_size=224):
     print('loading model checkpoint')
+    hf_login()
     if model_name == 'resnet':
         model = TimmCNNEncoder()
     elif model_name == 'simclr':

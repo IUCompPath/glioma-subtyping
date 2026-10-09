@@ -8,18 +8,42 @@ The WHO 2021 classification criteria for adult-type diffuse glioma integrate his
 
 ## Environment
 ### Pre-requisites
-* Linux (Tested on Ubuntu 22.04)
-* NVIDIA GPU (Tested on Nvidia A6000/A100)
+* Linux (tested on Ubuntu 22.04 / WSL2)
+* NVIDIA GPU (tested on A6000, A100, RTX 6000 Ada), driver supporting CUDA 11.8
 
-Next, use the environment configuration file to create a conda environment:
+One command creates the pinned conda environment (`environment.yml` + `requirements.txt`: Python 3.10, PyTorch 2.0.1+cu118, OpenSlide) and compiles the bundled Mamba CUDA kernels (`mamba/`, from [MambaMIL](https://github.com/isyangshu/MambaMIL)):
 ```bash
-conda env create -n glioma_subtyping -f glioma_subtyping.yaml
-```
-
-Activate the environment:
-```bash
+scripts/setup_env.sh          # optional arg: GPU compute capability, e.g. 8.0
 conda activate glioma_subtyping
+pytest                        # unit tests (+ Mamba forward pass on GPU)
 ```
+
+### Smoke test (end to end on 2 slides)
+Runs patching, ResNet-50 feature extraction, training, evaluation and multi-magnification late fusion for `att_mil`, `mamba_mil` and `clam_sb` (no gated weights needed). Labels and splits are dummies, so only the plumbing is checked:
+```bash
+scripts/smoke_test.sh /path/to/slides            # first 2 slides in the folder (~1 min on a GPU)
+scripts/smoke_test.sh a.svs b.svs                # or explicit files
+```
+It ends with `SMOKE TEST PASSED` after `tools/check_smoke_outputs.py` verifies every artifact.
+
+### Access tokens for gated foundation models
+Several foundation models (UNI, CONCH, Virchow2, Hibou, ...) are gated on Hugging Face. Request access on each model page, then export your token in the shell **before** running feature extraction. Tokens are never stored in this repository:
+
+```bash
+export HF_TOKEN=<your_hugging_face_token>
+```
+
+## Repository layout
+
+| Path | Purpose |
+|------|---------|
+| `create_patches_fp.py`, `step_1a_patch_cleaning.py`, `wsi_core/` | Tissue segmentation, patch coordinates, patch cleanup (from CLAM) |
+| `extract_features_fp*.py`, `models/builder.py` | Patch-level feature extraction with each foundation model |
+| `models/`, `modules/` | MIL aggregators (CLAM, MambaMIL, TransMIL, DSMIL, WiKG, RRT, ...) |
+| `main.py`, `eval.py`, `ensemble_script.py` | Cross-validated training, evaluation, multi-magnification late fusion |
+| `create_heatmaps.py`, `vis_utils/` | Attention heatmaps for interpretability |
+| `dataset_csv/`, `splits/`, `presets/` | Labels, train/val/test folds, segmentation presets |
+| `scripts/` | Shell drivers for each pipeline stage (`scripts/slurm/` has a cluster template) |
 
 ## WSI Patching and Curation
 
@@ -35,56 +59,15 @@ data/wsi/<DATASET>
 ```
 
 
-### 🛠 Workflow Logic
-
-The pipeline automatically adjusts the extraction scale and file paths based on the input magnification. 
-This ensures that the physical area covered by a patch remains consistent or follows your specific protocol.
-
-| Input Argument | Target Data Directory | Output Directory | Patch Size | Down Sample Level |
-| :--- | :--- | :--- | :--- | :--- |
-| `40x` | `data/slides_40x/` | `data/slides_patches/` | **512** | `2` |
-| `20x` | `data/slides_20x/` | `data/slides_patches/` | **256** | `1` | 
-
-
-### Patch Creation at Multiple Magnifications
-
-Some datasets provide Whole Slide Images (WSIs) with pyramid downsample levels  
-`1, 2, 4, 8, 16`.  
-We map these levels to effective optical magnifications as follows:
-
-| Pyramid Level | Effective Magnification | Openslide Level |
-|--------------:|------------------------:| --------------: |
-| 1             | 40x (native resolution) | 0               |
-| 2             | 20x                     | 1               |
-| 4             | 10x                     | 2               |
-| 8             | 5x                      | 3               |
-| 16            | 2.5x                    | 4               |
-
-Based on this mapping, patches are extracted using the following conventions:
-
-- **20x / 10x / 5x / 2.5x**  
-  - `step_size = 256`  
-  - `patch_size = 256`  
-- **40x**  
-  - `step_size = 512`  
-  - `patch_size = 512`
-
----
+### Patching at a target magnification
+`create_patches_fp.py --target_mag 20` resolves the pyramid level **per slide** from its native objective power (20x- and 40x-native TCGA slides are handled in one run). If a slide has no level at the target (e.g. a 40x slide without a 20x level), it is read at the finer level with a proportionally larger window (512 px for 256 px at 20x) and resized by the feature extractor, so every patch covers the same tissue area. Tissue segmentation presets live in `presets/`; use `bwh_biopsy.csv` for small or sparse specimens.
 
 #### Create Patches Script
-
-The `create_patches.sh` script takes the following arguments:
-
 ```bash
-./create_patches.sh <DATASET> <MAG> <PATCH_SIZE> <PATCH_LEVEL>
-
-Examples: 
-./script/create_patches.sh tcga 20x 256 0 #20x (Pyramid Level = 2)
-./script/create_patches.sh tcga 10x 256 1 #10x (Pyramid Level = 4)
-./script/create_patches.sh tcga 5x 256 2 #5x (Pyramid Level = 8)
-./script/create_patches.sh tcga 2.5x 256 3 #2.5x (Pyramid Level = 16)
+scripts/patches/create_patches.sh <DATASET> <MAG> [PRESET]
+scripts/patches/create_patches.sh tcga 20x      # also 10x, 5x, 2.5x
 ```
-
+Slides are read from `data/wsi/<DATASET>/` (override with `WSI_ROOT`).
 
 #### Output Directory Structure
 ```bash
@@ -115,7 +98,7 @@ After patch extraction, a cleanup step is performed to remove invalid or unused 
 Run the cleanup script as follows:
 
 ```bash
-python step_2_cleanup.py \
+python step_1a_patch_cleaning.py \
     --wsi_dir "$DATA_DIR" \
     --h5_dir "$COORD_DIR/patches" \
     --csv_path "$COORD_DIR/slides_processed.csv" \
@@ -135,13 +118,13 @@ It supports multiple **self-supervised and supervised histopathology encoders** 
 
 ### Usage
 ```bash
-./script/extract_features.sh <MAG> <BATCH_SIZE> <CSV_FILE> <BACKBONE> <DATASET>
+./scripts/features/create_features.sh <MAG> <BATCH_SIZE> <CSV_FILE> <BACKBONE> <DATASET>
 ``` 
 
 Example: 
 ```shell
-chmod +x extract_features.sh
-./script/extract_features.sh 20x 128 tcga_2021_who_labels.csv uni tcga
+chmod +x features/create_features.sh
+./scripts/features/create_features.sh 20x 128 tcga_2021_who_labels.csv uni tcga
 ```
 
 Arguments:
@@ -157,7 +140,7 @@ Arguments:
 We support several **state-of-the-art self-supervised foundation models** for histopathology.  
 For more details about each model, please refer to the original repositories to request access and follow their specific licensing terms.
 
-- **ReNet-50** : ImageNet pretrained 
+- **ResNet-50** : ImageNet pretrained 
 - **CTransPath** : [https://github.com/Xiyue-Wang/TransPath](https://github.com/Xiyue-Wang/TransPath)
 - **Lunit ViT** : [https://github.com/lunit-io/benchmark-ssl-pathology](https://github.com/lunit-io/benchmark-ssl-pathology)
 - **UNI** : [https://github.com/mahmoodlab/UNI](https://github.com/mahmoodlab/UNI)
@@ -192,7 +175,7 @@ While this repository focuses on specific glioma subtyping  [TRIDENT](https://gi
 ### 🧠 Supported MIL Models
 
 The training script supports the following Multiple Instance Learning (MIL) model architectures.
-Use any of these as the `<MODEL>` argument when running `train.sh`.
+Use any of these as the `<MODEL>` argument when running `scripts/train.sh`.
 
 | Model Name | Description | Original Repository |
 |-----------|-------------| ----------------------|
@@ -210,20 +193,20 @@ Use any of these as the `<MODEL>` argument when running `train.sh`.
 ### Usage Instructions
 To run the training script, pass the **magnification level** and **backbone name** as arguments:
 ```bash
-chmod +x train.sh
-./train.sh <BACKBONE> <MODEL> <MAG>
+chmod +x scripts/train.sh
+./scripts/train.sh <BACKBONE> <MODEL> <MAG>
 ```
 
 Example: 
 ```bash
-./train.sh virchow trans_mil 20x
-./train.sh uni mamba_mil 10x
-./train.sh gigapath wikgmil 5x
+./scripts/train.sh virchow trans_mil 20x
+./scripts/train.sh uni mamba_mil 10x
+./scripts/train.sh gigapath wikgmil 5x
 ```
 
 To iterate over all the models, as well as backbone along with the magnification:
 ```bash
-chmod +x train.sh
+chmod +x scripts/train.sh
 
 # The Triple Loop
 for bb in uni imagenet hibou ctranspath lunit conch_v1 gigapath optimus virchow; do
@@ -231,7 +214,7 @@ for bb in uni imagenet hibou ctranspath lunit conch_v1 gigapath optimus virchow;
         for mag in 20x 10x 5x 2.5x; do
             echo "------------------------------------------------"
             echo "RUNNING: Backbone: $bb | Model: $model | Mag: $mag"
-            ./train.sh "$bb" "$model" "$mag"
+            ./scripts/train.sh "$bb" "$model" "$mag"
         done
     done
 done
@@ -244,7 +227,7 @@ BACKBONES=("uni" "imagenet" "hibou" "ctranspath" "lunit" "conch_v1" "gigapath" "
 MODELS=("mean_mil" "max_mil" "att_mil" "trans_mil" "clam_sb" "mamba_mil" "dsmil" "wikgmil" "rrtmil")
 MAGS=("20x" "10x" "5x" "2.5x")
 
-chmod +x eval.sh
+chmod +x scripts/eval.sh
 
 # The Master Loop
 for bb in "${BACKBONES[@]}"; do
@@ -252,7 +235,7 @@ for bb in "${BACKBONES[@]}"; do
         for mag in "${MAGS[@]}"; do
             echo "------------------------------------------------"
             echo "EVALUATING: Backbone: $bb | Model: $model | Mag: $mag"
-            ./eval.sh "$model" "$bb" "$mag"
+            ./scripts/eval.sh "$model" "$bb" "$mag"
         done
     done
 done
@@ -261,10 +244,10 @@ done
 
 Example: 
 ```bash
-./script/eval.sh mamba_mil uni 20x
-./script/eval.sh rrt_mil gigapath 10x
-./script/eval.sh att_mil virchow 5x
-./script/eval.sh wikgmil optimus 2.5x
+./scripts/eval.sh mamba_mil uni 20x
+./scripts/eval.sh rrtmil gigapath 10x
+./scripts/eval.sh att_mil virchow 5x
+./scripts/eval.sh wikgmil optimus 2.5x
 ```
 
 #### Output Directory Structure
@@ -286,8 +269,8 @@ This is performed after model inference, using precomputed evaluation CSVs.
 
 To run late fusion across all backbones, models, and datasets, use:
 ```bash
-chmod +x script/eval_ensemble.sh
-./script/eval_ensemnles.sh who2021
+chmod +x scripts/eval_ensemble.sh
+./scripts/eval_ensemble.sh who2021
 ```
 
 #### Output Directory Structure 

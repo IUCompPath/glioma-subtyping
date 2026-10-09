@@ -146,7 +146,8 @@ def calculate_error(Y_hat, Y):
 
 def make_weights_for_balanced_classes_split(dataset):
 	N = float(len(dataset))                                           
-	weight_per_class = [N/len(dataset.slide_cls_ids[c]) for c in range(len(dataset.slide_cls_ids))]                                                                                                     
+	# classes absent from this split get weight 0 (they are never sampled anyway)
+	weight_per_class = [N/len(ids) if len(ids) else 0. for ids in dataset.slide_cls_ids]
 	weight = [0] * int(N)                                           
 	for idx in range(len(dataset)):   
 		y = dataset.getlabel(idx)                        
@@ -164,3 +165,25 @@ def initialize_weights(module):
 			nn.init.constant_(m.weight, 1)
 			nn.init.constant_(m.bias, 0)
 
+
+
+def safe_auc(labels, probs, n_classes):
+    """ROC-AUC that tolerates splits where some classes are absent.
+
+    Binary: standard AUC. Multi-class: one-vs-rest AUC averaged over the classes that
+    are present (classes absent from `labels` are skipped). Returns NaN if the metric
+    is undefined (fewer than two classes present).
+    """
+    from sklearn.metrics import roc_auc_score
+    labels = np.asarray(labels).astype(int)
+    probs = np.asarray(probs)
+    if len(np.unique(labels)) < 2:
+        return float('nan')
+    if n_classes == 2:
+        return roc_auc_score(labels, probs[:, 1])
+    aucs = []
+    for c in range(n_classes):
+        y = (labels == c).astype(int)
+        if 0 < y.sum() < len(y):
+            aucs.append(roc_auc_score(y, probs[:, c]))
+    return float(np.mean(aucs)) if aucs else float('nan')

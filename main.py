@@ -7,22 +7,16 @@ import os
 from utils.file_utils import save_pkl
 from utils.utils import *
 from utils.core_utils import train
-from dataset.dataset_generic import Generic_MIL_Dataset
+from dataset_modules.dataset_generic import Generic_MIL_Dataset
 
 # pytorch imports
 import torch
 import pandas as pd
 import numpy as np
-import wandb
 # torch.use_deterministic_algorithms(True)
 def main(args):
-    os.environ['WANDB_MODE'] = 'dryrun'
-    wandb.init(project=args.task)
-    wandb.config.update(args)
-    os.environ['WANDB_MODE'] = 'dryrun'
     # create results directory if necessary
-    if not os.path.isdir(args.results_dir):
-        os.mkdir(args.results_dir)
+    os.makedirs(args.results_dir, exist_ok=True)
 
     if args.k_start == -1:
         start = 0
@@ -40,14 +34,10 @@ def main(args):
     folds = np.arange(start, end)
     for i in folds:
         seed_torch(args.seed)
-        train_dataset, val_dataset, test_dataset = dataset.return_splits(args.backbone, args.patch_size, from_id=False, 
+        train_dataset, val_dataset, test_dataset = dataset.return_splits(from_id=False, 
                 csv_path='{}/splits_{}.csv'.format(args.split_dir, i))
         
         datasets = (train_dataset, val_dataset, test_dataset)
-        if args.preloading == 'yes':
-            for d in datasets:
-                d.pre_loading()
-            
         results, test_auc, val_auc, test_acc, val_acc  = train(datasets, i, args)
 
         all_test_auc.append(test_auc)
@@ -75,7 +65,6 @@ def main(args):
     mean_acc_val = final_df['val_acc'].mean()
     std_acc_val = final_df['val_acc'].std()
 
-    wandb.log({"mean_auc_test": mean_auc_test, "std_auc_test": std_auc_test, "mean_auc_val": mean_auc_val, "std_auc_val": std_auc_val})
     df_append = pd.DataFrame({
         'folds': ['mean', 'std'],
         'test_auc': [mean_auc_test, std_auc_test],
@@ -89,10 +78,7 @@ def main(args):
     else:
         save_name = 'summary.csv'
     final_df.to_csv(os.path.join(args.results_dir, save_name))
-    final_df['folds'] = final_df['folds'].astype(str)
-    table = wandb.Table(dataframe=final_df)
-    wandb.log({"summary": table})
-    wandb.log({"mean_auc_test": mean_auc_test, "mean_acc_test": mean_acc_test, "mean_auc_val": mean_auc_val, "mean_acc_val": mean_acc_val})
+    print(final_df.to_string(index=False))
 
 
 # Generic training settings
@@ -128,8 +114,8 @@ parser.add_argument('--weighted_sample', action='store_true', default=False, hel
 parser.add_argument('--task', type=str)
 parser.add_argument('--backbone', type=str, default='resnet50')
 parser.add_argument('--patch_size', type=str, default='')
-parser.add_argument('--preloading', type=str, default='no')
-parser.add_argument('--in_dim', type=int, default=1024)
+parser.add_argument('--in_dim', '--embed_dim', dest='in_dim', type=int, default=1024,
+                    help='dimension of the patch features (depends on the backbone)')
 parser.add_argument('--csv_path', type=str)
 parser.add_argument('--features_dir', type=str)
 ## mambamil

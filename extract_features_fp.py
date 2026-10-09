@@ -32,7 +32,7 @@ def compute_w_loader(output_path, loader, model, verbose = 0):
 		print(f'processing a total of {len(loader)} batches'.format(len(loader)))
 	mode = 'w'
 	for count, data in enumerate(tqdm(loader)):
-		with torch.inference_mode(), torch.autocast(device_type="cuda", dtype=torch.float16):	
+		with torch.inference_mode(), torch.autocast(device_type=device.type, dtype=torch.float16, enabled=device.type == "cuda"):	
 			batch = data['img']
 			coords = data['coord'].numpy().astype(np.int32)
 			batch = batch.to(device, non_blocking=True)
@@ -117,4 +117,4 @@ if __name__ == '__main__':
 			bag_base, _ = os.path.splitext(bag_name)
 			torch.save(features, os.path.join(args.feat_dir, 'pt_files', bag_base+'.pt'))
 		except Exception as e:
-			print(f"Error processing index {bag_candidate_idx} ({slide_id}): {str(e)}")
+			print(f"Error processing index {bag_candidate_idx} ({bags_dataset[bag_candidate_idx]}): {e}")

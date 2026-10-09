@@ -1,7 +1,6 @@
 import operator
 import itertools
 
-from future.builtins import range
 from functools import reduce
 from ..logarithm import LogTensor
 

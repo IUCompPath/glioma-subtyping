@@ -8,7 +8,7 @@ import math
 # internal imports
 from utils.file_utils import save_pkl, load_pkl
 from utils.utils import *
-from utils.core_utils import train
+from utils.clam_utils import train
 from dataset_modules.dataset_generic import Generic_WSI_Classification_Dataset, Generic_MIL_Dataset
 
 # pytorch imports
@@ -227,8 +227,6 @@ if not os.path.isdir(args.results_dir):
 
 if args.split_dir is None:
     args.split_dir = os.path.join('splits', args.task+'_{}'.format(int(args.label_frac*100)))
-else:
-    args.split_dir = os.path.join('splits', args.split_dir)
 
 print('split_dir: ', args.split_dir)
 assert os.path.isdir(args.split_dir)

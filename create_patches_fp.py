@@ -11,6 +11,44 @@ import pdb
 import pandas as pd
 from tqdm import tqdm
 
+def get_native_magnification(wsi):
+	"""Native objective power of an OpenSlide handle (falls back to MPP, 0.25um/px ~ 40x), or None."""
+	props = wsi.properties
+	for key in ('openslide.objective-power', 'aperio.AppMag'):
+		try:
+			return float(props[key])
+		except (KeyError, ValueError):
+			pass
+	try:
+		return 10.0 / float(props['openslide.mpp-x'])
+	except (KeyError, ValueError, ZeroDivisionError):
+		return None
+
+
+def resolve_patch_level(wsi, target_mag, tol=0.1):
+	"""Pick (pyramid level, size multiplier) to patch a slide at `target_mag` (e.g. 20 for 20x).
+
+	Uses the level with the smallest magnification that is still >= the target. If that level
+	is finer than the target (e.g. a 40x-native slide without a 20x level), the multiplier is
+	the integer ratio (2 for 40x -> 20x): patch/step size are multiplied by it so the patch
+	covers the same tissue area, and the feature extractor's transform resizes it back down.
+	Returns None when the slide cannot be matched (unknown native mag or non-integer ratio).
+	"""
+	native = get_native_magnification(wsi)
+	if native is None:
+		return None
+	mags = [native / d for d in wsi.level_downsamples]
+	candidates = [(m, i) for i, m in enumerate(mags) if m >= target_mag * (1 - tol)]
+	if not candidates:
+		return None
+	mag, level = min(candidates)
+	ratio = mag / target_mag
+	mult = max(1, int(round(ratio)))
+	if abs(ratio - mult) > tol:
+		return None
+	return level, mult
+
+
 def stitching(file_path, wsi_object, downscale = 64):
 	start = time.time()
 	heatmap = StitchCoords(file_path, wsi_object, downscale=downscale, bg_color=(0,0,0), alpha=-1, draw_grid=False)
@@ -52,7 +90,7 @@ def seg_and_patch(source, save_dir, patch_save_dir, mask_save_dir, stitch_save_d
 				  filter_params = {'a_t':100, 'a_h': 16, 'max_n_holes':8}, 
 				  vis_params = {'vis_level': -1, 'line_thickness': 500},
 				  patch_params = {'use_padding': True, 'contour_fn': 'four_pt'},
-				  patch_level = 0,
+				  patch_level = 0, target_mag = None,
 				  use_default_params = False, 
 				  seg = False, save_mask = False, 
 				  stitch= False, 
@@ -106,7 +144,17 @@ def seg_and_patch(source, save_dir, patch_save_dir, mask_save_dir, stitch_save_d
 						# Inialize WSI
 		full_path = os.path.join(source, slide)
 		WSI_object = WholeSlideImage(full_path)
-		
+
+		cur_patch_level, cur_patch_size, cur_step_size = patch_level, patch_size, step_size
+		if target_mag is not None:
+			resolved = resolve_patch_level(WSI_object.getOpenSlide(), target_mag)
+			if resolved is None:
+				print('no pyramid level at {}x for {}, skipped'.format(target_mag, slide))
+				df.loc[idx, 'status'] = 'no_level_for_target_mag'
+				continue
+			cur_patch_level, mult = resolved
+			cur_patch_size, cur_step_size = patch_size * mult, step_size * mult
+			print('{}x -> pyramid level {} (patch {}px)'.format(target_mag, cur_patch_level, cur_patch_size))
 
 		if use_default_params:
 			current_vis_params = vis_params.copy()
@@ -192,7 +240,9 @@ def seg_and_patch(source, save_dir, patch_save_dir, mask_save_dir, stitch_save_d
 		if seg:
 			try:
 				WSI_object, seg_time_elapsed = segment(WSI_object, current_seg_params, current_filter_params) 
-			except:
+			except Exception as e:
+				print('segmentation failed for {}: {}'.format(slide, e))
+				df.loc[idx, 'status'] = 'failed_seg'
 				continue
 
 		if save_mask:
@@ -202,7 +252,7 @@ def seg_and_patch(source, save_dir, patch_save_dir, mask_save_dir, stitch_save_d
 
 		patch_time_elapsed = -1 # Default time
 		if patch:
-			current_patch_params.update({'patch_level': patch_level, 'patch_size': patch_size, 'step_size': step_size, 
+			current_patch_params.update({'patch_level': cur_patch_level, 'patch_size': cur_patch_size, 'step_size': cur_step_size, 
 										'save_path': patch_save_dir})
 			file_path, patch_time_elapsed = patching(WSI_object = WSI_object,  **current_patch_params,)
 		
@@ -250,6 +300,8 @@ parser.add_argument('--preset', default=None, type=str,
 					help='predefined profile of default segmentation and filter parameters (.csv)')
 parser.add_argument('--patch_level', type=int, default=0, 
 					help='downsample level at which to patch')
+parser.add_argument('--target_mag', type=float, default=None,
+					help='target magnification (e.g. 20); overrides --patch_level by resolving the pyramid level per slide')
 parser.add_argument('--process_list',  type = str, default=None,
 					help='name of list of images to process with parameters (.csv)')
 
@@ -313,6 +365,6 @@ if __name__ == '__main__':
 										patch_size = args.patch_size, step_size=args.step_size, 
 										seg = args.seg,  use_default_params=False, save_mask = False, 
 										stitch= args.stitch,
-										patch_level=args.patch_level, patch = args.patch,
+										patch_level=args.patch_level, target_mag=args.target_mag, patch = args.patch,
 										process_list = process_list, auto_skip=args.no_auto_skip)
 	

@@ -2,11 +2,10 @@ import numpy as np
 import torch
 from utils.utils import *
 import os
-from dataset.dataset_generic import save_splits
+from dataset_modules.dataset_generic import save_splits
 from sklearn.preprocessing import label_binarize
 from sklearn.metrics import roc_auc_score, roc_curve
 from sklearn.metrics import auc as calc_auc
-import wandb
 
 def find_func(model_name: str):
     model_name = model_name.lower()
@@ -243,7 +242,7 @@ def train(datasets, cur, args):
         acc, correct, count = acc_logger.get_summary(i)
         print('class {}: acc {}, correct {}/{}'.format(i, acc, correct, count))
 
-        if writer:
+        if writer and acc is not None:
             writer.add_scalar('final/test_class_{}_acc'.format(i), acc, 0)
 
     if writer:
@@ -294,7 +293,7 @@ def train_loop(epoch, model, loader, optimizer, n_classes, writer = None, loss_f
     for i in range(n_classes):
         acc, correct, count = acc_logger.get_summary(i)
         print('class {}: acc {}, correct {}/{}'.format(i, acc, correct, count))
-        if writer:
+        if writer and acc is not None:
             writer.add_scalar('train/class_{}_acc'.format(i), acc, epoch)
 
     if writer:
@@ -334,14 +333,7 @@ def validate(cur, epoch, model, loader, n_classes, early_stopping = None, writer
     val_error /= len(loader)
     val_loss /= len(loader)
 
-    if n_classes == 2:
-        #print(f'label: {labels}, prob: {prob[:, 1]}')
-        auc = roc_auc_score(labels, prob[:, 1])
-    
-    else:
-
-        auc = roc_auc_score(labels, prob, multi_class='ovr')
-    
+    auc = safe_auc(labels, prob, n_classes)
     
     if writer:
         writer.add_scalar('val/loss', val_loss, epoch)
@@ -405,20 +397,6 @@ def summary(model, loader, n_classes):
     all_Y_hat = np.concatenate(all_Y_hat)
     all_label = np.concatenate(all_label)
 
-    if n_classes == 2:
-        auc = roc_auc_score(all_labels, all_probs[:, 1])
-        aucs = []
-    else:
-        aucs = []
-        binary_labels = label_binarize(all_labels, classes=[i for i in range(n_classes)])
-        for class_idx in range(n_classes):
-            if class_idx in all_labels:
-                fpr, tpr, _ = roc_curve(binary_labels[:, class_idx], all_probs[:, class_idx])
-                aucs.append(calc_auc(fpr, tpr))
-            else:
-                aucs.append(float('nan'))
-
-        auc = np.nanmean(np.array(aucs))
-
+    auc = safe_auc(all_labels, all_probs, n_classes)
 
     return patient_results, test_error, auc, acc_logger

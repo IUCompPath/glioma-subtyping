@@ -1,60 +1,47 @@
-#!/bin/bash
-#$ -S /bin/bash
-nvidia-smi
+#!/usr/bin/env bash
+# Extract patch-level features for one dataset / magnification / backbone.
+#
+# Usage: scripts/features/create_features.sh <MAG> <BATCH_SIZE> <CSV_FILE> <BACKBONE> <DATASET>
+#   CSV_FILE  file in dataset_csv/ (or an explicit path) listing the slides to process
+#
+# Gated models (uni, conch_v1, virchow, hibou, ...) need a Hugging Face token:
+#   export HF_TOKEN=<your token>        # never commit it
+#
+# Environment: WSI_ROOT, PATCH_ROOT, FEAT_ROOT (default data/{wsi,patches,features}),
+#              SLIDE_EXT (default: .svs, .ndpi for ebrains, .tiff for ipd), PYTHON.
+set -euo pipefail
+source "$(dirname "$0")/../lib.sh"
 
-# Input Arguments
-MAG=$1          # e.g., 20x
-BS=$2           # Batch Size, e.g., 128
-CSV=$3          # CSV filename, e.g., slides.csv
-BACKBONE=$4     # e.g., uni, virchow, hibou
-DATASET=$5      # e.g., tcga_gbm
-export HF_TOKEN='your_actual_token_here' # Ensure this is set for gated models
+[ "$#" -eq 5 ] || { sed -n '2,12p' "$0"; exit 1; }
+MAG=$1; BS=$2; CSV=$3; BACKBONE=$4; DATASET=$5
 
-module load anaconda
+backbone_dim "$BACKBONE" > /dev/null
+MODEL_NAME=$(backbone_model_name "$BACKBONE")
+case "$DATASET" in
+    ebrains) DEFAULT_EXT=.ndpi ;;
+    ipd)     DEFAULT_EXT=.tiff ;;
+    *)       DEFAULT_EXT=.svs ;;
+esac
+SLIDE_EXT=${SLIDE_EXT:-$DEFAULT_EXT}
+[ -f "$CSV" ] || CSV="dataset_csv/${CSV}"
 
-# 1. Environment and Backbone Validation
-# Added missing || and fixed spacing in the conditional check
-if [[ "$BACKBONE" == "resnet" || "$BACKBONE" == "uni" || \
-      "$BACKBONE" == "conch_v1" || "$BACKBONE" == "lunit" || \
-      "$BACKBONE" == "ctranspath" || "$BACKBONE" == "gigapath" || \
-      "$BACKBONE" == "optimus" || "$BACKBONE" == "virchow" || \
-      "$BACKBONE" == "hibou" ]]; then
-    
-    source activate glioma_subtyping
-else
-    echo "Error: Unsupported backbone '$BACKBONE'"
-    echo "Choose from: resnet, uni, conch_v1, lunit, ctranspath, gigapath, optimus, virchow, hibou"
-    exit 1
-fi
+H5_DIR="${PATCH_ROOT:-data/patches}/${DATASET}/${MAG}"
+SLIDE_DIR="${WSI_ROOT:-data/wsi}/${DATASET}"
+FEAT_DIR="${FEAT_ROOT:-data/features}/${BACKBONE}/${DATASET}/${MAG}"
 
-# 2. Define Directory Paths (Cleaned up for clarity)
-H5_DIR="data/patches/${DATASET}/${MAG}"
-SLIDE_DIR="data/wsi/${DATASET}"
-CSV_PATH="dataset_csv/${CSV}"
-FEAT_DIR="data/features/${BACKBONE}/${DATASET}/${MAG}"
+case "$BACKBONE" in
+    virchow) SCRIPT=extract_features_fp_virchow.py ;;
+    hibou)   SCRIPT=extract_features_fp_hibou.py ;;
+    *)       SCRIPT=extract_features_fp.py ;;
+esac
 
-echo "-------------------------------------------------------"
-echo "Processing Dataset: $DATASET at $MAG"
-echo "Model:             $BACKBONE"
-echo "Output Directory:  $FEAT_DIR"
-echo "-------------------------------------------------------"
-
-# 3. Execution Logic
-# Virchow and Hibou often require specific preprocessing wrappers (fp_virchow/fp_hibou)
-if [[ "$BACKBONE" == "virchow" ]]; then
-    SCRIPT="extract_features_fp_virchow.py"
-elif [[ "$BACKBONE" == "hibou" ]]; then
-    SCRIPT="extract_features_fp_hibou.py"
-else
-    SCRIPT="extract_features_fp.py"
-fi
-
-python "$SCRIPT" \
+echo "Dataset: $DATASET @ $MAG | backbone: $BACKBONE | output: $FEAT_DIR"
+"$PY" "$SCRIPT" \
     --data_h5_dir "$H5_DIR" \
     --data_slide_dir "$SLIDE_DIR" \
-    --csv_path "$CSV_PATH" \
+    --csv_path "$CSV" \
     --feat_dir "$FEAT_DIR" \
     --batch_size "$BS" \
-    --slide_ext .svs \
+    --slide_ext "$SLIDE_EXT" \
     --target_patch_size 224 \
-    --model_name "$BACKBONE"
+    --model_name "$MODEL_NAME"

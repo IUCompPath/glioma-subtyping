@@ -1,0 +1,21 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite the associated article."
+title: "AI-driven WHO 2021 classification of gliomas based only on H&E-stained slides"
+type: software
+authors:
+  - family-names: Innani
+    given-names: Shubham
+  - family-names: Bell
+    given-names: W. Robert
+  - family-names: Nasrallah
+    given-names: MacLean P.
+  - family-names: Baheti
+    given-names: Bhakti
+  - family-names: Bakas
+    given-names: Spyridon
+preferred-citation:
+  type: article
+  title: "AI-driven WHO 2021 classification of gliomas based only on H&E-stained slides"
+  journal: "Neuro-Oncology"
+  doi: "10.1093/neuonc/noaf189"
+  year: 2025

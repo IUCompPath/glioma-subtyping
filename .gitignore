@@ -1,5 +1,18 @@
 README_idh.md
 **/.DS_Store
 __pycache__/
-commands.sh
-scripts/train_job_mag.sh
+# local / private
+.env
+*.err
+*.egg-info/
+data/
+results/
+eval_results/
+wandb/
+smoke_out/
+data_smoke/
+mamba/build/
+mamba/*.egg-info/
+*.pt
+!modules/init_ckp/*.pth
+.vscode/

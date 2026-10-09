@@ -1,6 +1,5 @@
 import torch
 
-from future.builtins import range
 from ..logarithm import LogTensor
 
 

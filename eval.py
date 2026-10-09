@@ -24,6 +24,8 @@ parser.add_argument('--results_dir', type=str, default='./results',
                     'the directory containing models_exp_code relative to project root (default: ./results)')
 parser.add_argument('--save_exp_code', type=str, default=None,
                     help='experiment code to save eval results')
+parser.add_argument('--eval_dir', type=str, default='./eval_results',
+                    help='root directory for evaluation outputs (default: ./eval_results)')
 parser.add_argument('--models_exp_code', type=str, default=None,
                     help='experiment code to load trained models (directory under results_dir containing model checkpoints')
 parser.add_argument('--splits_dir', type=str, default=None,
@@ -40,14 +42,19 @@ parser.add_argument('--micro_average', action='store_true', default=False,
 parser.add_argument('--split', type=str, choices=['train', 'val', 'test', 'all'], default='test')
 parser.add_argument('--task', type=str)
 parser.add_argument('--drop_out', type=float, default=0.25, help='dropout')
-parser.add_argument('--embed_dim', type=int, default=512)
+parser.add_argument('--embed_dim', '--in_dim', dest='embed_dim', type=int, default=512,
+                    help='dimension of the patch features (depends on the backbone)')
+parser.add_argument('--mambamil_rate', type=int, default=5, help='mambamil_rate')
+parser.add_argument('--mambamil_layer', type=int, default=2, help='mambamil_layer')
+parser.add_argument('--mambamil_type', type=str, default='SRMamba', choices=['Mamba', 'BiMamba', 'SRMamba'], help='mambamil_type')
 parser.add_argument('--csv_path', type=str)
 parser.add_argument('--features_dir', type=str)
 args = parser.parse_args()
+args.in_dim = args.embed_dim
 
 device=torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-args.save_dir = os.path.join('./eval_results', 'EVAL_' + str(args.save_exp_code))
+args.save_dir = os.path.join(args.eval_dir, str(args.save_exp_code))
 args.models_dir = os.path.join(args.results_dir, str(args.models_exp_code))
 
 os.makedirs(args.save_dir, exist_ok=True)
