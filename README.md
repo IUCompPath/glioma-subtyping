@@ -26,6 +26,9 @@ scripts/smoke_test.sh a.svs b.svs                # or explicit files
 ```
 It ends with `SMOKE TEST PASSED` after `tools/check_smoke_outputs.py` verifies every artifact.
 
+### Fast smoke test (training → evaluation → multi-scale fusion)
+`smoke_test/run.sh` runs everything after feature extraction on a tiny, committed set of real TCGA GigaPath features (plus synthetic features for a second backbone). No slides or token needed. See [smoke_test/README.md](smoke_test/README.md).
+
 ### Access tokens for gated foundation models
 Several foundation models (UNI, CONCH, Virchow2, Hibou, ...) are gated on Hugging Face. Request access on each model page, then export your token in the shell **before** running feature extraction. Tokens are never stored in this repository:
 

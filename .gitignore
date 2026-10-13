@@ -16,3 +16,15 @@ mamba/*.egg-info/
 *.pt
 !modules/init_ckp/*.pth
 .vscode/
+
+
+# smoke-test outputs and generated (synthetic) features
+smoke_test/out/
+smoke_test/data/features/*
+
+# committed smoke-test data (small, subsampled real gigapath features)
+!smoke_test/data/
+smoke_test/data/features/*
+!smoke_test/data/features/gigapath/
+!smoke_test/data/features/gigapath/**
+!smoke_test/data/features/gigapath/**/*.pt
